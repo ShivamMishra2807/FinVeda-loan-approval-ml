@@ -1,0 +1,13 @@
+{
+  "total_records": 5250,
+  "train_samples": 4160,
+  "test_samples": 1040,
+  "class_counts": {
+    "Y": 4313,
+    "N": 937
+  },
+  "best_model_by_accuracy": "Decision Tree",
+  "ensemble_accuracy": 0.9125,
+  "ensemble_f1": 0.9459,
+  "benchmark_paper_accuracy": 0.8726
+}
