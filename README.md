@@ -190,13 +190,44 @@ streamlit run app.py
 ```
 
 ### Dashboard Features:
-1. **Executive Dashboard**: Key performance indicator cards (Approval Rate, Median Loan, Total Volume) and portfolio distributions.
-2. **Loan Prediction Studio**: Real-time form with inline validation, financial ratio calculation (DTI, LTI), and probability gauge.
+1. **Executive Dashboard**: Key performance indicator cards (Approval Rate, Median Loan, Total Volume in ₹) and portfolio distributions.
+2. **Loan Prediction Studio**: Real-time form with inline validation, financial ratio calculation (DTI, EMI in ₹, LTI), and probability gauge.
 3. **Exploratory Data Analysis**: Histograms, violin distributions, and Spearman correlation matrices.
 4. **Model Performance Lab**: Interactive model leaderboard, per-classifier confusion matrices, and cross-validation summaries.
 5. **Model Explainability**: Gini feature importance rankings from tree ensembles.
 6. **Dataset Explorer**: Searchable, filterable table with one-click CSV export.
 7. **About & Methodology**: Architectural data-flow diagrams and research citations.
+
+---
+
+## 🚀 GitHub Push & Streamlit Cloud Deployment Guide
+
+### 1. Push to Your GitHub Repository
+1. Open your browser and create a new repository on [GitHub](https://github.com/new) named: `loan-approval-ml` (or your choice).
+2. Link your local repository and push:
+```powershell
+# Open terminal in project directory
+cd C:\Users\shivam\.gemini\antigravity\scratch\loan-approval-ml
+
+# Rename branch to main
+git branch -M main
+
+# Add your GitHub remote URL (replace <YOUR_USERNAME> with your GitHub username)
+git remote add origin https://github.com/<YOUR_USERNAME>/loan-approval-ml.git
+
+# Push code to GitHub
+git push -u origin main
+```
+
+### 2. Deploy Instantly on Streamlit Community Cloud (Free)
+1. Go to [share.streamlit.io](https://share.streamlit.io/) and log in with your GitHub account.
+2. Click **Create app** (or **New app**).
+3. Fill in:
+   - **Repository**: `<YOUR_USERNAME>/loan-approval-ml`
+   - **Branch**: `main`
+   - **Main file path**: `app.py`
+4. Click **Deploy!**
+5. Streamlit Cloud automatically installs packages from `requirements.txt` and loads the saved `models/voting_ensemble_pipeline.joblib`. Your app will be live with a public URL!
 
 ---
 
