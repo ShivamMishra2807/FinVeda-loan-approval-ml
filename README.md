@@ -8,7 +8,7 @@
 An academic, production-grade Machine Learning analytics platform and underwriting decision support system. Built with an institutional dark-mode fintech UI, leakage-free pipeline engineering with SMOTE oversampling, empirical benchmarking of 9 candidate classifiers, and a soft-voting ensemble (`Random Forest` + `Extra Trees` + `K-Nearest Neighbors`).
 
 ---
-
+Live Demo:- https://finveda-loan-approval-ml-vjrgp5aedbdgwznx4d8qym.streamlit.app/
 ## 📑 Table of Contents
 1. [Executive Summary](#executive-summary)
 2. [Key Architecture & Data Pipeline](#key-architecture--data-pipeline)
