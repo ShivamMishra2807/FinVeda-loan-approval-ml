@@ -549,16 +549,17 @@ elif selected_page == "Loan Approval Prediction":
                 
             c_la, c_lat = st.columns(2)
             with c_la:
-                default_k = int(cat_info["default_amount"] / 1000)
-                loan_amount_k = st.number_input(
-                    "Requested Loan (₹ in Thousands)",
-                    min_value=20,
-                    max_value=10000,
-                    value=min(default_k, 1000),
-                    step=25,
-                    help="In dataset scale: e.g., 300 represents ₹3,00,000 (3 Lakhs)"
+                default_amount_inr = int(cat_info["default_amount"])
+                loan_amount_inr = st.number_input(
+                    "Requested Loan Amount (₹ INR)",
+                    min_value=50000,
+                    max_value=50000000,
+                    value=default_amount_inr,
+                    step=25000,
+                    help="Enter the full loan amount in Indian Rupees. Example: ₹16,25,000 for 16.25 Lakhs."
                 )
-                actual_loan_rupees = loan_amount_k * 1000
+                loan_amount_k = loan_amount_inr / 1000.0  # Convert to thousands for ML model (dataset scale)
+                actual_loan_rupees = loan_amount_inr
                 st.caption(f"Principal: **{format_inr(actual_loan_rupees)}**")
             with c_lat:
                 suggested_months = pricing_cfg.get("default_tenure_months", cat_info["default_tenure_years"] * 12)
@@ -675,13 +676,11 @@ elif selected_page == "Loan Approval Prediction":
                     st.markdown("<br>", unsafe_allow_html=True)
                     
                     # Interest Rate Source & Pricing Transparency Banner
-                    is_sim = fin.get("is_simulation", False)
-                    pill_badge = '<span class="badge-pill badge-amber">⚠️ Simulation Override Mode</span>' if is_sim else '<span class="badge-pill badge-blue">✓ Institutional Pricing Rule</span>'
                     st.markdown(f"""
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                             <span style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Interest Rate</span>
-                            {pill_badge}
+                            <span class="badge-pill badge-blue">✓ Institutional Pricing Rule</span>
                         </div>
                         <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">{fin['annual_interest_rate']:.2f}% p.a.</div>
                         <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
@@ -742,7 +741,7 @@ elif selected_page == "Loan Approval Prediction":
                     pred_export_df = pd.DataFrame([{
                         **input_payload,
                         "Loan_Category": loan_cat,
-                        "Pricing_Mode": "Simulation Override" if is_sim else "Automated Institutional Pricing",
+                        "Pricing_Mode": "Automated Institutional Pricing",
                         "Annual_Interest_Rate_Pct": fin['annual_interest_rate'],
                         "ApplicantIncome_INR": applicant_income,
                         "CoapplicantIncome_INR": coapplicant_income,
