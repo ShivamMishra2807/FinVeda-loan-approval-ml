@@ -771,6 +771,49 @@ elif selected_page == "Loan Approval Prediction":
             fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", height=190, margin=dict(t=25, b=10, l=20, r=20))
             st.plotly_chart(fig_gauge, use_container_width=True)
             
+            # Repayment Breakdown Pie / Donut Chart (Loan Amount vs Interest vs Total to be Paid)
+            st.markdown("<h4 style='color:#f8fafc; font-size:1rem; font-weight:600; margin-top:16px;'>📊 Repayment Breakdown (Loan vs Interest vs Total)</h4>", unsafe_allow_html=True)
+            p_val = fin['principal_inr']
+            i_val = fin['total_interest']
+            tot_val = fin['total_repayment']
+            
+            if tot_val > 0:
+                fig_repay_pie = go.Figure(data=[go.Pie(
+                    labels=["Loan Amount (Principal)", "Total Interest Amount"],
+                    values=[p_val, i_val],
+                    hole=0.55,
+                    marker=dict(colors=["#0284c7", "#f59e0b"]),
+                    textinfo="label+percent",
+                    hoverinfo="label+value+percent",
+                    hovertemplate="<b>%{label}</b><br>Amount: ₹%{value:,.2f}<br>Share: %{percent}<extra></extra>"
+                )])
+                fig_repay_pie.update_layout(
+                    annotations=[{
+                        "text": f"<b>Total to Pay</b><br><span style='font-size:12px; color:#38bdf8;'>{format_inr(tot_val)}</span>",
+                        "showarrow": False,
+                        "font": {"size": 13, "color": "#f8fafc"}
+                    }],
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=-0.25,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(color="#cbd5e1", size=11)
+                    ),
+                    height=250,
+                    margin=dict(t=15, b=30, l=15, r=15)
+                )
+                st.plotly_chart(fig_repay_pie, use_container_width=True)
+                
+                c_p, c_i, c_t = st.columns(3)
+                c_p.metric("💳 Loan Amount", format_inr(p_val), help="Original borrowed principal facility")
+                c_i.metric("📈 Interest Amount", format_inr(i_val), help="Cumulative interest payable over full tenure")
+                c_t.metric("💰 Amount to be Paid", format_inr(tot_val), help="Principal + Total Interest")
+            
             # Explainable Factor Attribution & Suggestions
             st.markdown("<h4 style='color:#f8fafc; font-size:0.95rem; font-weight:600; margin-top:10px;'>Factor Attribution</h4>", unsafe_allow_html=True)
             for exp in res.get("explanations", []):
