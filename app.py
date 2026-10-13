@@ -494,125 +494,124 @@ elif selected_page == "Loan Approval Prediction":
         pricing_cfg = get_product_pricing_config(loan_cat)
         st.caption(f"ℹ️ *{cat_info['description']} (Illustrative demonstration benchmark)*")
         
-        with st.form("loan_application_form"):
-            st.markdown("<p style='color:#94a3b8; font-size:0.85rem; margin-bottom:12px;'><strong>Demographic & Employment Details</strong></p>", unsafe_allow_html=True)
-            c_g, c_m, c_d = st.columns(3)
-            with c_g:
-                gender = st.selectbox("Gender", ["Male", "Female"])
-            with c_m:
-                married = st.selectbox("Marital Status", ["Yes", "No"])
-            with c_d:
-                dependents = st.selectbox("Dependents", ["0", "1", "2", "3+"])
-                
-            c_e, c_se, c_p = st.columns(3)
-            with c_e:
-                education = st.selectbox("Education", ["Graduate", "Not Graduate"])
-            with c_se:
-                self_employed = st.selectbox("Self Employed", ["No", "Yes"])
-            with c_p:
-                property_area = st.selectbox("Collateral Property Area", ["Semiurban", "Urban", "Rural"])
-                
-            st.markdown("<hr style='border-color: rgba(255,255,255,0.08); margin: 16px 0;'>", unsafe_allow_html=True)
-            st.markdown("<p style='color:#38bdf8; font-size:0.85rem; margin-bottom:12px;'><strong>Monthly Incomes & Requested Facility (₹ INR)</strong></p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#94a3b8; font-size:0.85rem; margin-bottom:12px;'><strong>Demographic & Employment Details</strong></p>", unsafe_allow_html=True)
+        c_g, c_m, c_d = st.columns(3)
+        with c_g:
+            gender = st.selectbox("Gender", ["Male", "Female"])
+        with c_m:
+            married = st.selectbox("Marital Status", ["Yes", "No"])
+        with c_d:
+            dependents = st.selectbox("Dependents", ["0", "1", "2", "3+"])
             
-            c_ai, c_cai, c_deb = st.columns(3)
-            with c_ai:
-                applicant_income = st.number_input(
-                    "Applicant Monthly Income (₹)",
-                    min_value=5000,
-                    max_value=1000000,
-                    value=45000,
-                    step=2500,
-                    help="Gross monthly salary or business receipts in Rupees (₹)"
-                )
-                st.caption(f"**{format_inr(applicant_income)} / month**")
-            with c_cai:
-                coapplicant_income = st.number_input(
-                    "Co-Applicant Monthly Income (₹)",
-                    min_value=0,
-                    max_value=500000,
-                    value=15000,
-                    step=2500,
-                    help="Spouse or co-borrower monthly income in Rupees (₹)"
-                )
-                st.caption(f"**{format_inr(coapplicant_income)} / month**")
-            with c_deb:
-                existing_debt = st.number_input(
-                    "Existing Monthly EMIs (₹)",
-                    min_value=0,
-                    max_value=300000,
-                    value=0,
-                    step=1000,
-                    help="Current ongoing debt obligations and loan EMIs in Rupees (₹)"
-                )
-                st.caption(f"**{format_inr(existing_debt)} / month**")
-                
-            c_la, c_lat = st.columns(2)
-            with c_la:
-                default_amount_inr = int(cat_info["default_amount"])
-                loan_amount_inr = st.number_input(
-                    "Requested Loan Amount (₹ INR)",
-                    min_value=50000,
-                    max_value=50000000,
-                    value=default_amount_inr,
-                    step=25000,
-                    help="Enter the full loan amount in Indian Rupees. Example: ₹16,25,000 for 16.25 Lakhs."
-                )
-                loan_amount_k = loan_amount_inr / 1000.0  # Convert to thousands for ML model (dataset scale)
-                actual_loan_rupees = loan_amount_inr
-                st.caption(f"Principal: **{format_inr(actual_loan_rupees)}**")
-            with c_lat:
-                suggested_months = pricing_cfg.get("default_tenure_months", cat_info["default_tenure_years"] * 12)
-                min_m = pricing_cfg.get("min_tenure_months", 12)
-                max_m = pricing_cfg.get("max_tenure_months", 360)
-                standard_terms = [360, 240, 180, 120, 84, 60, 48, 36, 24, 12, 6]
-                term_options = [m for m in standard_terms if min_m <= m <= max_m]
-                if suggested_months not in term_options:
-                    term_options.append(suggested_months)
-                term_options = sorted(list(set(term_options)), reverse=True)
-                default_idx = term_options.index(suggested_months) if suggested_months in term_options else 0
-                loan_term = st.selectbox(
-                    "Repayment Tenure",
-                    term_options,
-                    index=default_idx,
-                    format_func=lambda m: f"{m} Months ({m//12} Yrs)" if m >= 12 else f"{m} Months"
-                )
-                
-            c_ch, c_disp_rate = st.columns(2)
-            with c_ch:
-                credit_history = st.selectbox(
-                    "CIBIL / Credit History Record",
-                    [1.0, 0.0],
-                    format_func=lambda x: "1.0 - Meets Guidelines (Clean)" if x == 1.0 else "0.0 - Derogatory / Delinquent"
-                )
-            with c_disp_rate:
-                base_r = pricing_cfg["default_illustrative_rate"]
-                min_r = pricing_cfg["min_interest_rate"]
-                max_r = pricing_cfg["max_interest_rate"]
-                
-                # Pre-calculate indicative rate for display in read-only box
-                indicative_res = determine_interest_rate(
-                    loan_product=loan_cat,
-                    credit_history=credit_history,
-                    is_self_employed=(self_employed == "Yes"),
-                    is_simulation_mode=False
-                )
-                disp_rate = indicative_res["applicable_annual_rate"]
-                
-                st.markdown(f"""
-                <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 10px 14px; margin-top: 2px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.76rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Annual Rate</span>
-                        <span class="badge-pill badge-blue" style="font-size: 0.68rem; padding: 3px 8px;">Read-Only Institutional Rate</span>
-                    </div>
-                    <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin: 3px 0;">{disp_rate:.2f}% p.a.</div>
-                    <div style="font-size: 0.74rem; color: #64748b;">
-                        Corridor: {min_r}% – {max_r}% ({loan_cat})
-                    </div>
+        c_e, c_se, c_p = st.columns(3)
+        with c_e:
+            education = st.selectbox("Education", ["Graduate", "Not Graduate"])
+        with c_se:
+            self_employed = st.selectbox("Self Employed", ["No", "Yes"])
+        with c_p:
+            property_area = st.selectbox("Collateral Property Area", ["Semiurban", "Urban", "Rural"])
+            
+        st.markdown("<hr style='border-color: rgba(255,255,255,0.08); margin: 16px 0;'>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#38bdf8; font-size:0.85rem; margin-bottom:12px;'><strong>Monthly Incomes & Requested Facility (₹ INR)</strong></p>", unsafe_allow_html=True)
+        
+        c_ai, c_cai, c_deb = st.columns(3)
+        with c_ai:
+            applicant_income = st.number_input(
+                "Applicant Monthly Income (₹)",
+                min_value=5000,
+                max_value=1000000,
+                value=45000,
+                step=2500,
+                help="Gross monthly salary or business receipts in Rupees (₹)"
+            )
+            st.caption(f"**{format_inr(applicant_income)} / month**")
+        with c_cai:
+            coapplicant_income = st.number_input(
+                "Co-Applicant Monthly Income (₹)",
+                min_value=0,
+                max_value=500000,
+                value=15000,
+                step=2500,
+                help="Spouse or co-borrower monthly income in Rupees (₹)"
+            )
+            st.caption(f"**{format_inr(coapplicant_income)} / month**")
+        with c_deb:
+            existing_debt = st.number_input(
+                "Existing Monthly EMIs (₹)",
+                min_value=0,
+                max_value=300000,
+                value=0,
+                step=1000,
+                help="Current ongoing debt obligations and loan EMIs in Rupees (₹)"
+            )
+            st.caption(f"**{format_inr(existing_debt)} / month**")
+            
+        c_la, c_lat = st.columns(2)
+        with c_la:
+            default_amount_inr = int(cat_info["default_amount"])
+            loan_amount_inr = st.number_input(
+                "Requested Loan Amount (₹ INR)",
+                min_value=50000,
+                max_value=50000000,
+                value=default_amount_inr,
+                step=25000,
+                help="Enter the full loan amount in Indian Rupees. Example: ₹16,25,000 for 16.25 Lakhs."
+            )
+            loan_amount_k = loan_amount_inr / 1000.0  # Convert to thousands for ML model (dataset scale)
+            actual_loan_rupees = loan_amount_inr
+            st.caption(f"Principal: **{format_inr(actual_loan_rupees)}**")
+        with c_lat:
+            suggested_months = pricing_cfg.get("default_tenure_months", cat_info["default_tenure_years"] * 12)
+            min_m = pricing_cfg.get("min_tenure_months", 12)
+            max_m = pricing_cfg.get("max_tenure_months", 360)
+            standard_terms = [360, 240, 180, 120, 84, 60, 48, 36, 24, 12, 6]
+            term_options = [m for m in standard_terms if min_m <= m <= max_m]
+            if suggested_months not in term_options:
+                term_options.append(suggested_months)
+            term_options = sorted(list(set(term_options)), reverse=True)
+            default_idx = term_options.index(suggested_months) if suggested_months in term_options else 0
+            loan_term = st.selectbox(
+                "Repayment Tenure",
+                term_options,
+                index=default_idx,
+                format_func=lambda m: f"{m} Months ({m//12} Yrs)" if m >= 12 else f"{m} Months"
+            )
+            
+        c_ch, c_disp_rate = st.columns(2)
+        with c_ch:
+            credit_history = st.selectbox(
+                "CIBIL / Credit History Record",
+                [1.0, 0.0],
+                format_func=lambda x: "1.0 - Meets Guidelines (Clean)" if x == 1.0 else "0.0 - Derogatory / Delinquent"
+            )
+        with c_disp_rate:
+            base_r = pricing_cfg["default_illustrative_rate"]
+            min_r = pricing_cfg["min_interest_rate"]
+            max_r = pricing_cfg["max_interest_rate"]
+            
+            # Pre-calculate indicative rate for display in read-only box
+            indicative_res = determine_interest_rate(
+                loan_product=loan_cat,
+                credit_history=credit_history,
+                is_self_employed=(self_employed == "Yes"),
+                is_simulation_mode=False
+            )
+            disp_rate = indicative_res["applicable_annual_rate"]
+            
+            st.markdown(f"""
+            <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 10px 14px; margin-top: 2px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.76rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Annual Rate</span>
+                    <span class="badge-pill badge-blue" style="font-size: 0.68rem; padding: 3px 8px;">Read-Only Institutional Rate</span>
                 </div>
-                """, unsafe_allow_html=True)
-                
-            submit_btn = st.form_submit_button("⚡ Run Institutional Assessment", use_container_width=True)
+                <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin: 3px 0;">{disp_rate:.2f}% p.a.</div>
+                <div style="font-size: 0.74rem; color: #64748b;">
+                    Corridor: {min_r}% – {max_r}% ({loan_cat})
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        submit_btn = st.button("⚡ Run Institutional Assessment", type="primary", use_container_width=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
         
@@ -621,152 +620,169 @@ elif selected_page == "Loan Approval Prediction":
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         st.markdown("<h3 style='margin-top:0; font-size:1.2rem; font-weight:700; color:#f8fafc;'>📈 Underwriting Decision Output</h3>", unsafe_allow_html=True)
         
-        if not submit_btn:
-            st.info("👈 Enter applicant's profile and click **Run Institutional Assessment** to execute the trained ensemble pipeline.")
-        else:
+        input_payload = {
+            "Gender": gender,
+            "Married": married,
+            "Dependents": dependents,
+            "Education": education,
+            "Self_Employed": self_employed,
+            "ApplicantIncome": applicant_income,
+            "CoapplicantIncome": coapplicant_income,
+            "LoanAmount": loan_amount_k,
+            "Loan_Amount_Term": loan_term,
+            "Credit_History": credit_history,
+            "Property_Area": property_area
+        }
+        
+        current_input_signature = (
+            gender, married, dependents, education, self_employed, property_area,
+            applicant_income, coapplicant_income, existing_debt,
+            loan_amount_inr, loan_term, credit_history, loan_cat
+        )
+        
+        if submit_btn:
             if predictor is None:
                 st.error("⚠️ Trained model artifact not found. Please train models first via `python -m src.models`.")
             else:
-                input_payload = {
-                    "Gender": gender,
-                    "Married": married,
-                    "Dependents": dependents,
-                    "Education": education,
-                    "Self_Employed": self_employed,
-                    "ApplicantIncome": applicant_income,
-                    "CoapplicantIncome": coapplicant_income,
-                    "LoanAmount": loan_amount_k,
-                    "Loan_Amount_Term": loan_term,
-                    "Credit_History": credit_history,
-                    "Property_Area": property_area
-                }
-                
                 try:
                     res = predictor.predict(
                         input_payload,
                         existing_monthly_debt=existing_debt,
                         loan_product=loan_cat
                     )
-                    is_appr = res["is_approved"]
-                    conf_appr = res["approval_confidence"] * 100
-                    conf_rej = res["rejection_confidence"] * 100
-                    fin = res["financial_indicators"]
-                    
-                    if is_appr:
-                        st.markdown(f"""
-                        <div class="result-approved">
-                            <span class="badge-pill badge-green" style="margin-bottom: 8px;">ASSESSMENT OUTCOME</span>
-                            <h2 style="color: #10b981; margin: 6px 0; font-size: 2rem; font-weight: 800;">PREDICTED APPROVAL</h2>
-                            <p style="color: #a7f3d0; margin-top: 4px; font-weight: 500; font-size: 0.95rem;">
-                                Model Clearance Probability: <strong>{conf_appr:.1f}%</strong>
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div class="result-rejected">
-                            <span class="badge-pill badge-red" style="margin-bottom: 8px;">CREDIT RISK ALERT</span>
-                            <h2 style="color: #ef4444; margin: 6px 0; font-size: 2rem; font-weight: 800;">PREDICTED REJECTION</h2>
-                            <p style="color: #fca5a5; margin-top: 4px; font-weight: 500; font-size: 0.95rem;">
-                                Underwriting Risk Confidence: <strong>{conf_rej:.1f}%</strong>
-                            </p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    
-                    # Interest Rate Source & Pricing Transparency Banner
-                    st.markdown(f"""
-                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Interest Rate</span>
-                            <span class="badge-pill badge-blue">✓ Institutional Pricing Rule</span>
-                        </div>
-                        <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">{fin['annual_interest_rate']:.2f}% p.a.</div>
-                        <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
-                            <strong>Source:</strong> {fin.get('pricing_source', 'Institutional Pricing Rules')}<br>
-                            <strong>Details:</strong> {fin.get('pricing_rationale', 'Evaluated based on product pricing matrix and risk profile.')}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    st.markdown("<h4 style='color:#f8fafc; font-size:1rem; font-weight:600;'>Financial Affordability & Cash-Flow Diagnostics</h4>", unsafe_allow_html=True)
-                    
-                    r1, r2 = st.columns(2)
-                    r1.metric("Proposed Monthly EMI", f"₹{fin['proposed_emi']:,.2f}", help="Calculated via reducing-balance amortization formula with interest")
-                    r2.metric("Total Monthly Debt Service", f"₹{fin['total_monthly_debt']:,.2f}", help="Existing Monthly EMIs + Proposed EMI")
-                    
-                    r3, r4 = st.columns(2)
-                    dti_val = fin['debt_to_income_pct']
-                    dti_delta = "Healthy" if dti_val <= 35 else ("Moderate" if dti_val <= 50 else "High Risk")
-                    r3.metric("Debt-to-Income (DTI)", f"{dti_val:.1f}%", delta=dti_delta, delta_color="inverse" if dti_val > 50 else "normal", help="Formula: (Existing EMIs + Proposed EMI) / Monthly Income × 100")
-                    r4.metric("Loan-to-Income (LTI)", f"{fin['loan_to_income_ratio']:.2f}x", help="Formula: Principal / Annual Gross Household Income")
-                    
-                    r5, r6 = st.columns(2)
-                    r5.metric("Total Interest Payable", format_inr(fin['total_interest']), help="Total interest over full tenure")
-                    r6.metric("Total Repayment Amount", format_inr(fin['total_repayment']), help="Principal + Total Interest")
-                    
-                    fig_gauge = go.Figure(go.Indicator(
-                        mode="gauge+number",
-                        value=conf_appr,
-                        title={'text': "Approval Probability Index (%)", 'font': {'size': 14, 'color': "#94a3b8"}},
-                        gauge={
-                            'axis': {'range': [0, 100], 'tickcolor': "#cbd5e1"},
-                            'bar': {'color': "#10b981" if is_appr else "#ef4444"},
-                            'steps': [
-                                {'range': [0, 50], 'color': "rgba(239, 68, 68, 0.2)"},
-                                {'range': [50, 100], 'color': "rgba(16, 185, 129, 0.2)"}
-                            ],
-                            'threshold': {
-                                'line': {'color': "#38bdf8", 'width': 3},
-                                'thickness': 0.75,
-                                'value': 50
-                            }
-                        }
-                    ))
-                    fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", height=190, margin=dict(t=25, b=10, l=20, r=20))
-                    st.plotly_chart(fig_gauge, use_container_width=True)
-                    
-                    # Explainable Factor Attribution & Suggestions
-                    st.markdown("<h4 style='color:#f8fafc; font-size:0.95rem; font-weight:600; margin-top:10px;'>Factor Attribution</h4>", unsafe_allow_html=True)
-                    for exp in res.get("explanations", []):
-                        st.markdown(f"• <span style='font-size:0.85rem; color:#cbd5e1;'>{exp}</span>", unsafe_allow_html=True)
-                        
-                    st.markdown("<h4 style='color:#f8fafc; font-size:0.95rem; font-weight:600; margin-top:10px;'>Educational Guidance</h4>", unsafe_allow_html=True)
-                    for sug in res.get("educational_suggestions", []):
-                        st.markdown(f"💡 <span style='font-size:0.85rem; color:#94a3b8;'>{sug}</span>", unsafe_allow_html=True)
-                    
-                    st.caption(f"<br>ℹ️ *{res['limitations_note']}*", unsafe_allow_html=True)
-                    
-                    pred_export_df = pd.DataFrame([{
-                        **input_payload,
-                        "Loan_Category": loan_cat,
-                        "Pricing_Mode": "Automated Institutional Pricing",
-                        "Annual_Interest_Rate_Pct": fin['annual_interest_rate'],
-                        "ApplicantIncome_INR": applicant_income,
-                        "CoapplicantIncome_INR": coapplicant_income,
-                        "Existing_Monthly_Debt_INR": existing_debt,
-                        "LoanAmount_INR": actual_loan_rupees,
-                        "Proposed_EMI_INR": fin['proposed_emi'],
-                        "Total_Interest_INR": fin['total_interest'],
-                        "Total_Repayment_INR": fin['total_repayment'],
-                        "DTI_Pct": fin['debt_to_income_pct'],
-                        "LTI_Ratio": fin['loan_to_income_ratio'],
-                        "Status": res["prediction_status"],
-                        "Approval_Probability": f"{conf_appr:.2f}%"
-                    }])
-                    csv_bytes = pred_export_df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="📥 Export Assessment Memo (CSV)",
-                        data=csv_bytes,
-                        file_name="loan_sanction_assessment.csv",
-                        mime="text/csv",
-                        use_container_width=True
-                    )
-
+                    st.session_state["assessment_result"] = res
+                    st.session_state["assessment_signature"] = current_input_signature
+                    st.session_state["assessment_payload"] = input_payload
                 except Exception as e:
                     st.error(f"Inference error encountered: {str(e)}")
+                    st.session_state["assessment_result"] = None
                     
+        has_valid_assessment = (
+            st.session_state.get("assessment_signature") == current_input_signature
+            and st.session_state.get("assessment_result") is not None
+        )
+        
+        if not has_valid_assessment:
+            st.info("👈 Enter applicant's profile and click **Run Institutional Assessment** to execute the trained ensemble pipeline.")
+        else:
+            res = st.session_state["assessment_result"]
+            is_appr = res["is_approved"]
+            conf_appr = res["approval_confidence"] * 100
+            conf_rej = res["rejection_confidence"] * 100
+            fin = res["financial_indicators"]
+                    
+            if is_appr:
+                st.markdown(f"""
+                <div class="result-approved">
+                    <span class="badge-pill badge-green" style="margin-bottom: 8px;">ASSESSMENT OUTCOME</span>
+                    <h2 style="color: #10b981; margin: 6px 0; font-size: 2rem; font-weight: 800;">PREDICTED APPROVAL</h2>
+                    <p style="color: #a7f3d0; margin-top: 4px; font-weight: 500; font-size: 0.95rem;">
+                        Model Clearance Probability: <strong>{conf_appr:.1f}%</strong>
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="result-rejected">
+                    <span class="badge-pill badge-red" style="margin-bottom: 8px;">CREDIT RISK ALERT</span>
+                    <h2 style="color: #ef4444; margin: 6px 0; font-size: 2rem; font-weight: 800;">PREDICTED REJECTION</h2>
+                    <p style="color: #fca5a5; margin-top: 4px; font-weight: 500; font-size: 0.95rem;">
+                        Underwriting Risk Confidence: <strong>{conf_rej:.1f}%</strong>
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Interest Rate Source & Pricing Transparency Banner
+            st.markdown(f"""
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Interest Rate</span>
+                    <span class="badge-pill badge-blue">✓ Institutional Pricing Rule</span>
+                </div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">{fin['annual_interest_rate']:.2f}% p.a.</div>
+                <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
+                    <strong>Source:</strong> {fin.get('pricing_source', 'Institutional Pricing Rules')}<br>
+                    <strong>Details:</strong> {fin.get('pricing_rationale', 'Evaluated based on product pricing matrix and risk profile.')}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<h4 style='color:#f8fafc; font-size:1rem; font-weight:600;'>Financial Affordability & Cash-Flow Diagnostics</h4>", unsafe_allow_html=True)
+            
+            r1, r2 = st.columns(2)
+            r1.metric("Proposed Monthly EMI", f"₹{fin['proposed_emi']:,.2f}", help="Calculated via reducing-balance amortization formula with interest")
+            r2.metric("Total Monthly Debt Service", f"₹{fin['total_monthly_debt']:,.2f}", help="Existing Monthly EMIs + Proposed EMI")
+            
+            r3, r4 = st.columns(2)
+            dti_val = fin['debt_to_income_pct']
+            dti_delta = "Healthy" if dti_val <= 35 else ("Moderate" if dti_val <= 50 else "High Risk")
+            r3.metric("Debt-to-Income (DTI)", f"{dti_val:.1f}%", delta=dti_delta, delta_color="inverse" if dti_val > 50 else "normal", help="Formula: (Existing EMIs + Proposed EMI) / Monthly Income × 100")
+            r4.metric("Loan-to-Income (LTI)", f"{fin['loan_to_income_ratio']:.2f}x", help="Formula: Principal / Annual Gross Household Income")
+            
+            r5, r6 = st.columns(2)
+            r5.metric("Total Interest Payable", format_inr(fin['total_interest']), help="Total interest over full tenure")
+            r6.metric("Total Repayment Amount", format_inr(fin['total_repayment']), help="Principal + Total Interest")
+            
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=conf_appr,
+                title={'text': "Approval Probability Index (%)", 'font': {'size': 14, 'color': "#94a3b8"}},
+                gauge={
+                    'axis': {'range': [0, 100], 'tickcolor': "#cbd5e1"},
+                    'bar': {'color': "#10b981" if is_appr else "#ef4444"},
+                    'steps': [
+                        {'range': [0, 50], 'color': "rgba(239, 68, 68, 0.2)"},
+                        {'range': [50, 100], 'color': "rgba(16, 185, 129, 0.2)"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "#38bdf8", 'width': 3},
+                        'thickness': 0.75,
+                        'value': 50
+                    }
+                }
+            ))
+            fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", height=190, margin=dict(t=25, b=10, l=20, r=20))
+            st.plotly_chart(fig_gauge, use_container_width=True)
+            
+            # Explainable Factor Attribution & Suggestions
+            st.markdown("<h4 style='color:#f8fafc; font-size:0.95rem; font-weight:600; margin-top:10px;'>Factor Attribution</h4>", unsafe_allow_html=True)
+            for exp in res.get("explanations", []):
+                st.markdown(f"• <span style='font-size:0.85rem; color:#cbd5e1;'>{exp}</span>", unsafe_allow_html=True)
+                
+            st.markdown("<h4 style='color:#f8fafc; font-size:0.95rem; font-weight:600; margin-top:10px;'>Educational Guidance</h4>", unsafe_allow_html=True)
+            for sug in res.get("educational_suggestions", []):
+                st.markdown(f"💡 <span style='font-size:0.85rem; color:#94a3b8;'>{sug}</span>", unsafe_allow_html=True)
+            
+            st.caption(f"<br>ℹ️ *{res['limitations_note']}*", unsafe_allow_html=True)
+            
+            pred_export_df = pd.DataFrame([{
+                **input_payload,
+                "Loan_Category": loan_cat,
+                "Pricing_Mode": "Automated Institutional Pricing",
+                "Annual_Interest_Rate_Pct": fin['annual_interest_rate'],
+                "ApplicantIncome_INR": applicant_income,
+                "CoapplicantIncome_INR": coapplicant_income,
+                "Existing_Monthly_Debt_INR": existing_debt,
+                "LoanAmount_INR": actual_loan_rupees,
+                "Proposed_EMI_INR": fin['proposed_emi'],
+                "Total_Interest_INR": fin['total_interest'],
+                "Total_Repayment_INR": fin['total_repayment'],
+                "DTI_Pct": fin['debt_to_income_pct'],
+                "LTI_Ratio": fin['loan_to_income_ratio'],
+                "Status": res["prediction_status"],
+                "Approval_Probability": f"{conf_appr:.2f}%"
+            }])
+            csv_bytes = pred_export_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Export Assessment Memo (CSV)",
+                data=csv_bytes,
+                file_name="loan_sanction_assessment.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+            
         st.markdown('</div>', unsafe_allow_html=True)
 
 
