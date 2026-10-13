@@ -584,6 +584,11 @@ elif selected_page == "Loan Approval Prediction":
                 [1.0, 0.0],
                 format_func=lambda x: "1.0 - Meets Guidelines (Clean)" if x == 1.0 else "0.0 - Derogatory / Delinquent"
             )
+            custom_rate_toggle = st.checkbox(
+                "⚙️ Customize Interest Rate",
+                value=False,
+                help="Check to manually adjust the annual interest rate for this assessment"
+            )
         with c_disp_rate:
             base_r = pricing_cfg["default_illustrative_rate"]
             min_r = pricing_cfg["min_interest_rate"]
@@ -598,13 +603,30 @@ elif selected_page == "Loan Approval Prediction":
             )
             disp_rate = indicative_res["applicable_annual_rate"]
             
+            if custom_rate_toggle:
+                chosen_rate = st.number_input(
+                    "Annual Interest Rate (%)",
+                    min_value=1.0,
+                    max_value=35.0,
+                    value=float(disp_rate),
+                    step=0.25,
+                    help=f"Benchmark corridor for {loan_cat}: {min_r}% – {max_r}% p.a."
+                )
+                effective_rate = float(chosen_rate)
+                badge_text = "Custom User Rate"
+                badge_class = "badge-amber"
+            else:
+                effective_rate = float(disp_rate)
+                badge_text = "Read-Only Institutional Rate"
+                badge_class = "badge-blue"
+            
             st.markdown(f"""
             <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 10px 14px; margin-top: 2px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 0.76rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Annual Rate</span>
-                    <span class="badge-pill badge-blue" style="font-size: 0.68rem; padding: 3px 8px;">Read-Only Institutional Rate</span>
+                    <span class="badge-pill {badge_class}" style="font-size: 0.68rem; padding: 3px 8px;">{badge_text}</span>
                 </div>
-                <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin: 3px 0;">{disp_rate:.2f}% p.a.</div>
+                <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin: 3px 0;">{effective_rate:.2f}% p.a.</div>
                 <div style="font-size: 0.74rem; color: #64748b;">
                     Corridor: {min_r}% – {max_r}% ({loan_cat})
                 </div>
@@ -637,7 +659,8 @@ elif selected_page == "Loan Approval Prediction":
         current_input_signature = (
             gender, married, dependents, education, self_employed, property_area,
             applicant_income, coapplicant_income, existing_debt,
-            loan_amount_inr, loan_term, credit_history, loan_cat
+            loan_amount_inr, loan_term, credit_history, loan_cat,
+            custom_rate_toggle, effective_rate
         )
         
         if submit_btn:
@@ -647,6 +670,7 @@ elif selected_page == "Loan Approval Prediction":
                 try:
                     res = predictor.predict(
                         input_payload,
+                        annual_interest_rate=effective_rate if custom_rate_toggle else None,
                         existing_monthly_debt=existing_debt,
                         loan_product=loan_cat
                     )
@@ -695,11 +719,12 @@ elif selected_page == "Loan Approval Prediction":
             st.markdown("<br>", unsafe_allow_html=True)
             
             # Interest Rate Source & Pricing Transparency Banner
+            rate_badge_display = '<span class="badge-pill badge-amber">✓ Custom Rate Applied</span>' if custom_rate_toggle else '<span class="badge-pill badge-blue">✓ Institutional Pricing Rule</span>'
             st.markdown(f"""
             <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                     <span style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Interest Rate</span>
-                    <span class="badge-pill badge-blue">✓ Institutional Pricing Rule</span>
+                    {rate_badge_display}
                 </div>
                 <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">{fin['annual_interest_rate']:.2f}% p.a.</div>
                 <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
@@ -760,7 +785,7 @@ elif selected_page == "Loan Approval Prediction":
             pred_export_df = pd.DataFrame([{
                 **input_payload,
                 "Loan_Category": loan_cat,
-                "Pricing_Mode": "Automated Institutional Pricing",
+                "Pricing_Mode": "Custom Rate Specification" if custom_rate_toggle else "Automated Institutional Pricing",
                 "Annual_Interest_Rate_Pct": fin['annual_interest_rate'],
                 "ApplicantIncome_INR": applicant_income,
                 "CoapplicantIncome_INR": coapplicant_income,

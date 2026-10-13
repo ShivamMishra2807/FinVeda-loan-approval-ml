@@ -132,15 +132,19 @@ class LoanPredictionService:
                 is_simulation_mode=True
             )
         elif annual_interest_rate is not None and not is_simulation_mode:
-            # Explicit rate provided (e.g. from upstream pricing module)
+            # Explicit rate provided (e.g. custom interest rate option)
             pricing_res = {
                 "applicable_annual_rate": float(annual_interest_rate),
                 "base_rate": float(annual_interest_rate),
-                "risk_adjustments": [],
+                "risk_adjustments": [{
+                    "factor": "Custom Interest Rate Specification",
+                    "adjustment_pct": 0.0,
+                    "rationale": f"User-specified annual rate of {annual_interest_rate:.2f}% p.a."
+                }],
                 "is_simulation": False,
-                "pricing_source": f"Institutional Pricing Rules ({product})",
-                "pricing_rationale": "Applicable rate evaluated via institutional product rules.",
-                "disclaimer": "Illustrative demonstration pricing rule."
+                "pricing_source": f"Custom Specified Rate ({product})",
+                "pricing_rationale": f"Evaluated using custom specified interest rate of {annual_interest_rate:.2f}% p.a.",
+                "disclaimer": "Custom specified annual interest rate."
             }
         else:
             # Standard automated applicant pricing workflow
