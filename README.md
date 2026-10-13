@@ -1,45 +1,82 @@
-# FinVeda: Ensemble ML Based Bank Loan Approval Prediction Platform
+# FinVeda: AI-Powered Loan Approval & Financial Planning Platform
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Framework](https://img.shields.io/badge/Streamlit-1.65%2B-FF4B4B.svg)](https://streamlit.io/)
-[![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.3%2B-F7931E.svg)](https://scikit-learn.org/)
+[![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.4%2B-F7931E.svg)](https://scikit-learn.org/)
 
-An academic, production-grade Machine Learning analytics platform and underwriting decision support system. Built with an institutional dark-mode fintech UI, leakage-free pipeline engineering with SMOTE oversampling, empirical benchmarking of 9 candidate classifiers, and a soft-voting ensemble (`Random Forest` + `Extra Trees` + `K-Nearest Neighbors`).
+**FinVeda** is a production-grade Machine Learning credit underwriting, financial planning, and debt analysis platform. Built with an institutional dark-mode fintech UI in Indian Rupees (₹ INR), reducing-balance EMI calculation engine, multi-scenario loan comparison, month-by-month amortization schedule, prudential cash-flow affordability analysis, and an ensemble machine learning decision engine (`Random Forest` + `Extra Trees` + `K-Nearest Neighbors`).
 
 ---
-Live Demo:- https://finveda-loan-approval-ml-vjrgp5aedbdgwznx4d8qym.streamlit.app/
+
 ## 📑 Table of Contents
-1. [Executive Summary](#executive-summary)
-2. [Key Architecture & Data Pipeline](#key-architecture--data-pipeline)
-3. [Empirical Experimental Results](#empirical-experimental-results)
-4. [Project Structure](#project-structure)
-5. [Installation & Setup](#installation--setup)
-6. [Pipeline Execution Guide](#pipeline-execution-guide)
-7. [Running the Streamlit Web Application](#running-the-streamlit-web-application)
-8. [Google Colab Instructions](#google-colab-instructions)
-9. [Automated Testing](#automated-testing)
+1. [Core Features & Upgrades](#core-features--upgrades)
+2. [Verified Financial Formulation & Assumptions](#verified-financial-formulation--assumptions)
+3. [Configurable Loan Categories & Defaults](#configurable-loan-categories--defaults)
+4. [Machine Learning Underwriting Architecture](#machine-learning-underwriting-architecture)
+5. [Empirical Experimental Results](#empirical-experimental-results)
+6. [Project Structure](#project-structure)
+7. [Installation & Windows Launch Instructions](#installation--windows-launch-instructions)
+8. [Automated Test Suite](#automated-test-suite)
+9. [GitHub & Streamlit Community Cloud Deployment](#github--streamlit-community-cloud-deployment)
 10. [Academic Integrity & Ethical Disclaimer](#academic-integrity--ethical-disclaimer)
 
 ---
 
-## Executive Summary
+## Core Features & Upgrades
 
-The **ApexCredit Ensemble ML System** addresses risk mitigation in credit underwriting by synthesizing historical applicant characteristics, financial ratios, and credit history indicators to forecast loan approval likelihood (`Y` / `N`).
-
-### Primary Objectives:
-- **Leakage-Free Feature Engineering**: Computation of domain-specific debt burden metrics (`Debt_Burden`, `Loan_Income_Ratio`, `Total_Income`).
-- **Resampling Without Bias**: Integrated `imblearn.pipeline.Pipeline` ensuring `SMOTE` is fitted strictly within training cross-validation folds.
-- **Nine-Classifier Empirical Benchmark**: Direct comparative evaluation of 9 baseline algorithms on an identical held-out test set ($N=1,040$).
-- **Soft-Voting Ensemble**: Variance-reduced meta-classifier uniting Random Forest, Extra Trees, and KNN.
-- **Production Fintech UI/UX**: 7-page interactive dashboard with applicant simulation, real-time probability calibration, and explainability heatmaps.
+1. **Executive Dashboard**: Real-time loan portfolio metrics (sanction rate, median loan, median income in ₹ INR) and interactive demographic distributions.
+2. **Loan Approval Prediction**: Real-time evaluation powered by the saved Soft-Voting Ensemble (`Random Forest` + `Extra Trees` + `KNN`). Provides calibrated probabilities, transparent factor attribution (credit track record, DTI, LTI), and actionable educational suggestions.
+3. **Interactive EMI Calculator**: Implements the reducing-balance EMI formula with zero-interest edge-case protection, breakdown donut chart, and fee-inclusive borrowing costs.
+4. **Loan Scenario Comparison**: Side-by-side trade-off analysis of up to 3 loan packages. Automatically isolates lowest monthly outflow (lowest EMI) vs lowest lifetime cost (least interest).
+5. **Monthly Amortization Repayment Schedule**: Dynamic month-by-month ledger detailing opening balance, principal portion, interest portion, and closing balance tapering exactly to ₹0.00, with one-click CSV export.
+6. **Loan Affordability Analysis**: Cash-flow health diagnostics assessing debt-to-income (DTI) ratio against prudential guidelines (<35% low risk, 35-50% moderate, >50% stretched).
 
 ---
 
-## Key Architecture & Data Pipeline
+## Verified Financial Formulation & Assumptions
+
+### Equated Monthly Instalment (EMI) Formula
+For reducing-balance amortizing credit facilities:
+
+$$\text{EMI} = \frac{P \times r \times (1 + r)^n}{(1 + r)^n - 1}$$
+
+Where:
+- $P$ = Principal loan amount in ₹ INR
+- $r$ = Monthly interest rate = $\frac{\text{Annual Interest Rate}}{12 \times 100}$
+- $n$ = Repayment tenure in months
+
+**Special Edge Case**: For zero-interest loans ($r = 0$), $\text{EMI} = \frac{P}{n}$.
+
+**Benchmark Test Case Verification**:
+- Principal ($P$) = ₹5,00,000
+- Annual Interest Rate = $10.0\%$
+- Tenure ($n$) = 5 years (60 months)
+- **Computed Monthly EMI** = **₹10,623.52** (approx. ₹10,624)
+- **Total Lifetime Interest** = **₹1,37,411.20** (approx. ₹1.37 Lakh)
+- **Total Repayment Amount** = **₹6,37,411.20** (approx. ₹6.37 Lakh)
+- *Total repayment strictly equals Principal + Total Interest.*
+
+---
+
+## Configurable Loan Categories & Defaults
+
+All defaults are illustrative market benchmarks for Indian retail banking and can be adjusted:
+
+| Loan Category | Benchmark Interest Rate | Benchmark Tenure | Illustrative Principal | Standard Fee |
+| :--- | :---: | :---: | :---: | :---: |
+| **Personal Loan** | 11.50% | 3 Years (36 Mos) | ₹3,00,000 | 1.50% |
+| **Home Loan** | 8.50% | 20 Years (240 Mos) | ₹35,00,000 | 0.50% |
+| **Car Loan** | 9.25% | 5 Years (60 Mos) | ₹8,00,000 | 1.00% |
+| **Education Loan** | 9.85% | 7 Years (84 Mos) | ₹12,00,000 | 0.75% |
+| **Business Loan** | 14.00% | 4 Years (48 Mos) | ₹15,00,000 | 2.00% |
+
+---
+
+## Machine Learning Underwriting Architecture
 
 ```
-Raw Synthetic Data (5,250 records)
+Raw Synthetic Data (5,250 records in ₹ INR)
              │
              ▼
 Clean Raw Data (Deduplication & Schema Enforcement)
@@ -63,7 +100,7 @@ Model Training & 5-Fold Stratified Cross-Validation
 Soft-Voting Ensemble (Random Forest + Extra Trees + KNN)
              │
              ▼
-Serialized Model Artifacts (Joblib) & Streamlit Dashboard Interface
+Serialized Model Artifacts (Joblib) & Streamlit Platform Interface
 ```
 
 ---
@@ -85,8 +122,6 @@ Evaluated on the held-out test split ($N = 1,040$ applications, Stratified 80/20
 | **Gaussian Naive Bayes** | 89.23% | 96.38% | 90.29% | 0.9324 | 0.9115 | 91.06% (±0.78%) | 0.086s |
 | **K-Nearest Neighbors** | 87.50% | 96.77% | 87.72% | 0.9202 | 0.8994 | 89.21% (±0.68%) | 0.062s |
 
-> **Academic Benchmark Reference**: The reference paper in the project specifications reported **87.26% accuracy** for its three-classifier voting ensemble. In our experiments, the soft-voting ensemble attained **91.25% accuracy** ($F_1 = 0.9459$, $\text{AUC} = 0.9238$) while providing calibrated probabilities.
-
 ---
 
 ## Project Structure
@@ -94,23 +129,24 @@ Evaluated on the held-out test split ($N = 1,040$ applications, Stratified 80/20
 ```
 loan-approval-ml/
 │
-├── app.py                     # Streamlit 7-page interactive fintech dashboard
-├── requirements.txt           # Dependency requirements specification
-├── README.md                  # Comprehensive academic and technical documentation
+├── app.py                     # Streamlit 6-module interactive financial application
+├── requirements.txt           # Pinned dependencies matching serialized Joblib models
+├── README.md                  # Comprehensive technical and deployment documentation
 ├── LICENSE                    # MIT Open Source License
-├── .gitignore                 # Cache and environment exclusion rules
+├── .gitignore                 # Exclusion rules for caches and virtual environments
 │
 ├── data/
-│   └── loan_dataset.csv       # Synthetic academic loan applications (5,250 rows)
+│   └── loan_dataset.csv       # Synthetic academic loan applications (5,250 records in ₹ INR)
 │
 ├── notebooks/
 │   └── loan_approval_prediction.ipynb # Google Colab & local Jupyter notebook
 │
 ├── src/
-│   ├── generate_dataset.py    # Probabilistic underwriting dataset synthesizer
-│   ├── preprocessing.py       # Cleaning, domain ratios, ColumnTransformers & SMOTE
+│   ├── financial.py           # Verified EMI, amortization, affordability, & comparison logic
+│   ├── prediction.py          # ML inference service, factor attribution, & suggestions
+│   ├── preprocessing.py       # Domain ratios (DTI, LTI), ColumnTransformers & SMOTE
 │   ├── models.py              # 9 classifiers + Voting ensemble training engine
-│   ├── prediction.py          # Real-time inference service with schema validation
+│   ├── generate_dataset.py    # Probabilistic underwriting dataset synthesizer
 │   └── evaluation.py          # Metrics generation and matplotlib/seaborn charts
 │
 ├── models/
@@ -129,139 +165,79 @@ loan-approval-ml/
 │   └── feature_importance.png        # Gini importance plot from Random Forest
 │
 └── tests/
-    ├── test_pipeline.py       # Data generation, cleaning, ratios, & split tests
-    └── test_prediction.py     # End-to-end model inference and validation tests
+    ├── test_financial.py      # EMI math, zero-rate, negative inputs, & amortization tests (9 tests)
+    ├── test_pipeline.py       # Data generation, cleaning, ratios, & split tests (6 tests)
+    └── test_prediction.py     # End-to-end model inference and validation tests (3 tests)
 ```
 
 ---
 
-## Installation & Setup
+## Installation & Windows Launch Instructions
 
-### 1. Clone or Open Workspace
-```bash
-cd loan-approval-ml
+### 1. Open Terminal in Project Directory
+```powershell
+cd C:\Users\shivam\.gemini\antigravity\scratch\loan-approval-ml
 ```
 
-### 2. Create and Activate Virtual Environment (Recommended)
-```bash
+### 2. Create and Activate Virtual Environment
+```powershell
 python -m venv venv
-# Windows:
 venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
 ```
 
 ### 3. Install Dependencies
-```bash
+```powershell
 python -m pip install -r requirements.txt
 ```
 
----
-
-## Pipeline Execution Guide
-
-Run each phase of the machine learning pipeline from the command line:
-
-### Step 1: Synthesize Academic Dataset
-```bash
-python -m src.generate_dataset
-```
-*Generates `data/loan_dataset.csv` with 5,250 records and controlled missingness/duplicates.*
-
-### Step 2: Train and Benchmark All Classifiers
-```bash
-python -m src.models
-```
-*Executes 5-fold cross-validation on 9 classifiers + Voting Ensemble, evaluates held-out test performance, and serializes artifacts into `models/` and `reports/`.*
-
-### Step 3: Generate Visual Artifacts
-```bash
-python -m src.evaluation
-```
-*Creates static figures in `visualizations/`.*
-
----
-
-## Running the Streamlit Web Application
-
-Launch the 7-page interactive dashboard:
-```bash
+### 4. Launch the Streamlit Web Application
+```powershell
 streamlit run app.py
 ```
-
-### Dashboard Features:
-1. **Executive Dashboard**: Key performance indicator cards (Approval Rate, Median Loan, Total Volume in ₹) and portfolio distributions.
-2. **Loan Prediction Studio**: Real-time form with inline validation, financial ratio calculation (DTI, EMI in ₹, LTI), and probability gauge.
-3. **Exploratory Data Analysis**: Histograms, violin distributions, and Spearman correlation matrices.
-4. **Model Performance Lab**: Interactive model leaderboard, per-classifier confusion matrices, and cross-validation summaries.
-5. **Model Explainability**: Gini feature importance rankings from tree ensembles.
-6. **Dataset Explorer**: Searchable, filterable table with one-click CSV export.
-7. **About & Methodology**: Architectural data-flow diagrams and research citations.
+Open **`http://localhost:8501`** in your browser.
 
 ---
 
-## 🚀 GitHub Push & Streamlit Cloud Deployment Guide
+## Automated Test Suite
 
-### 1. Push to Your GitHub Repository
-1. Open your browser and create a new repository on [GitHub](https://github.com/new) named: `loan-approval-ml` (or your choice).
-2. Link your local repository and push:
+Execute all 18 automated tests across financial calculations, preprocessing pipelines, and ML inference:
+
 ```powershell
-# Open terminal in project directory
-cd C:\Users\shivam\.gemini\antigravity\scratch\loan-approval-ml
-
-# Rename branch to main
-git branch -M main
-
-# Add your GitHub remote URL (replace <YOUR_USERNAME> with your GitHub username)
-git remote add origin https://github.com/<YOUR_USERNAME>/loan-approval-ml.git
-
-# Push code to GitHub
-git push -u origin main
-```
-
-### 2. Deploy Instantly on Streamlit Community Cloud (Free)
-1. Go to [share.streamlit.io](https://share.streamlit.io/) and log in with your GitHub account.
-2. Click **Create app** (or **New app**).
-3. Fill in:
-   - **Repository**: `<YOUR_USERNAME>/loan-approval-ml`
-   - **Branch**: `main`
-   - **Main file path**: `app.py`
-4. Click **Deploy!**
-5. Streamlit Cloud automatically installs packages from `requirements.txt` and loads the saved `models/voting_ensemble_pipeline.joblib`. Your app will be live with a public URL!
-
----
-
-## Google Colab Instructions
-
-The notebook `notebooks/loan_approval_prediction.ipynb` is designed to run self-contained in Google Colab:
-
-1. Navigate to [Google Colab](https://colab.research.google.com/).
-2. Select **Upload** and upload `notebooks/loan_approval_prediction.ipynb`.
-3. If running without the local repository, the included **Academic Fallback Generator** cell will automatically synthesize the dataset.
-4. Run all cells sequentially via `Runtime -> Run all`.
-
----
-
-## Automated Testing
-
-Execute the test suite with verbose reporting:
-```bash
 python -m pytest tests/ -v
 ```
 
-All 9 test assertions verify:
-- Synthetic dataset generation schema and constraints
-- Deduplication and string whitespace stripping
-- Domain financial ratios (`Debt_Burden`, `Loan_Income_Ratio`)
-- Imputation and scaling without data leakage
-- Stratified sampling balance
-- Out-of-bounds input rejection
-- Joblib model persistence and inference
+All 18 tests cover:
+- Standard reducing-balance EMI calculations (PRD test case)
+- Zero-interest and zero-principal edge cases
+- Defensive exception handling on negative inputs
+- Complete amortization schedule closure to ₹0.00
+- Affordability cash-flow math and zero-income protection
+- Multi-scenario comparison trade-off ordering
+- Pipeline preprocessing and SMOTE leakage prevention
+- End-to-end positive and negative ML inference
+
+---
+
+## GitHub & Streamlit Community Cloud Deployment
+
+### Push to GitHub
+```powershell
+git add .
+git commit -m "Upgrade FinVeda: Complete EMI calculator, loan comparison, amortization, and affordability"
+git push origin main
+```
+
+### Deploy to Streamlit Community Cloud
+1. Sign in to [share.streamlit.io](https://share.streamlit.io/) with your GitHub account.
+2. Select repository: `ShivamMishra2807/FinVeda-loan-approval-ml`
+3. Branch: `main`
+4. Main file path: `app.py`
+5. Click **Deploy!**
 
 ---
 
 ## Academic Integrity & Ethical Disclaimer
 
-1. **Synthetic Data**: This platform uses an academic synthetic dataset. No real customer banking records or personally identifiable financial data (PII) were utilized.
-2. **Decision Support Only**: This platform is an educational prototype and cannot be utilized as an autonomous credit approval system.
-3. **Fair Lending Notice**: Real-world underwriting must adhere to statutory requirements such as the Equal Credit Opportunity Act (ECOA) and the Fair Credit Reporting Act (FCRA), including algorithmic bias auditing across protected classes.
+1. **Synthetic Academic Data**: This platform uses an academic synthetic dataset. No real customer banking records or personally identifiable financial data (PII) were utilized.
+2. **Decision Support Only**: This platform is an educational prototype and does not replace certified banking underwriting systems.
+3. **Fair Lending Notice**: Real-world underwriting must adhere to statutory requirements such as RBI guidelines, Equal Credit Opportunity Act (ECOA), and Fair Credit Reporting Act (FCRA).
