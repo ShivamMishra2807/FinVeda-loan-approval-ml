@@ -48,28 +48,33 @@ Where:
 
 **Special Edge Case**: For zero-interest loans ($r = 0$), $\text{EMI} = \frac{P}{n}$.
 
-**Benchmark Test Case Verification**:
-- Principal ($P$) = ₹5,00,000
-- Annual Interest Rate = $10.0\%$
-- Tenure ($n$) = 5 years (60 months)
-- **Computed Monthly EMI** = **₹10,623.52** (approx. ₹10,624)
-- **Total Lifetime Interest** = **₹1,37,411.20** (approx. ₹1.37 Lakh)
-- **Total Repayment Amount** = **₹6,37,411.20** (approx. ₹6.37 Lakh)
-- *Total repayment strictly equals Principal + Total Interest.*
+**Benchmark Test Case Verification (Tests A & B)**:
+- **Test Case A**:
+  - Principal ($P$) = ₹5,00,000 | Annual Rate = $10.0\%$ | Tenure ($n$) = 5 years (60 months)
+  - **Computed Monthly EMI** = **₹10,623.52** (approx. ₹10,624)
+  - **Total Lifetime Interest** = **₹1,37,411.20** (approx. ₹1.37 Lakh)
+  - **Total Repayment Amount** = **₹6,37,411.20** (approx. ₹6.37 Lakh)
+- **Test Case B**:
+  - Principal ($P$) = ₹3,00,000 | Annual Rate = $12.0\%$ | Tenure ($n$) = 12 months (1 year)
+  - **Computed Monthly EMI** = **₹26,654.64**
+  - **Total Lifetime Interest** = **₹19,855.68**
+  - **Total Repayment Amount** = **₹3,19,855.68**
+  - *Total repayment strictly equals Principal + Total Interest.*
 
 ---
 
 ## Configurable Loan Categories & Defaults
 
-All defaults are illustrative market benchmarks for Indian retail banking and can be adjusted:
+All defaults are illustrative market benchmarks for Indian retail banking and can be configured:
 
-| Loan Category | Benchmark Interest Rate | Benchmark Tenure | Illustrative Principal | Standard Fee |
+| Loan Category | Benchmark Interest Rate | Illustrative Range | Benchmark Tenure | Standard Fee |
 | :--- | :---: | :---: | :---: | :---: |
-| **Personal Loan** | 11.50% | 3 Years (36 Mos) | ₹3,00,000 | 1.50% |
-| **Home Loan** | 8.50% | 20 Years (240 Mos) | ₹35,00,000 | 0.50% |
-| **Car Loan** | 9.25% | 5 Years (60 Mos) | ₹8,00,000 | 1.00% |
-| **Education Loan** | 9.85% | 7 Years (84 Mos) | ₹12,00,000 | 0.75% |
-| **Business Loan** | 14.00% | 4 Years (48 Mos) | ₹15,00,000 | 2.00% |
+| **Personal Loan** | 12.00% | 10.5% – 24.0% | 3 Years (36 Mos) | 1.50% |
+| **Home Loan** | 8.50% | 7.5% – 11.0% | 20 Years (240 Mos) | 0.50% |
+| **Car Loan** | 9.50% | 8.0% – 15.0% | 5 Years (60 Mos) | 1.00% |
+| **Education Loan** | 9.50% | 8.0% – 14.0% | 7 Years (84 Mos) | 0.75% |
+| **Business Loan** | 14.00% | 11.0% – 24.0% | 4 Years (48 Mos) | 2.00% |
+
 
 ---
 

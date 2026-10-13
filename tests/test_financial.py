@@ -13,13 +13,15 @@ from src.financial import (
     generate_amortization_schedule,
     check_loan_affordability,
     compare_loan_scenarios,
+    calculate_lti,
     LOAN_CATEGORIES
 )
 
 
+
 def test_standard_emi_calculation_prd_example():
     """
-    Test PRD benchmark example:
+    Test A - Benchmark test case:
     Principal = ₹5,00,000, Annual Rate = 10%, Tenure = 5 years (60 months)
     Expected:
     - Monthly EMI ≈ ₹10,624 (exact formula: ₹10,623.52)
@@ -34,12 +36,32 @@ def test_standard_emi_calculation_prd_example():
     assert abs(res["total_repayment"] - (res["principal"] + res["total_interest"])) < 0.01
 
 
+def test_test_b_three_lakh_twelve_percent():
+    """
+    Test B - Benchmark test case:
+    Principal = ₹3,00,000, Annual Rate = 12%, Tenure = 12 months
+    Monthly rate r = 12 / 1200 = 0.01
+    Formula: 300000 * 0.01 * (1.01)^12 / ((1.01)^12 - 1) = ₹26,654.64
+    Expected:
+    - Monthly EMI = ₹26,654.64
+    - Total Repayment = ₹3,19,855.68
+    - Total Interest = ₹19,855.68
+    """
+    res = calculate_emi(principal=300000, annual_interest_rate=12.0, tenure_months=12)
+    assert abs(res["monthly_emi"] - 26654.64) < 0.01
+    assert abs(res["total_repayment"] - 319855.68) < 0.05
+    assert abs(res["total_interest"] - 19855.68) < 0.05
+    assert res["principal"] == 300000.0
+
+
+
 def test_zero_interest_loan():
-    """Verify zero-interest loans handle division-by-zero safely: EMI = P / n."""
+    """Test C - Verify zero-interest loans handle division-by-zero safely: EMI = P / n."""
     res = calculate_emi(principal=120000, annual_interest_rate=0.0, tenure_months=12)
     assert res["monthly_emi"] == 10000.0
     assert res["total_interest"] == 0.0
     assert res["total_repayment"] == 120000.0
+
 
 
 def test_zero_principal_loan():
@@ -123,3 +145,18 @@ def test_loan_categories_structure():
         assert cat in LOAN_CATEGORIES
         assert LOAN_CATEGORIES[cat]["default_interest_rate"] > 0
         assert LOAN_CATEGORIES[cat]["default_tenure_years"] > 0
+
+
+def test_loan_to_income_ratio_lti():
+    """Test J - Verify Loan-to-Income (LTI) ratio calculation against annual gross income."""
+    # Principal: ₹6,00,000, Monthly Income: ₹50,000 -> Annual Income: ₹6,00,000 -> LTI = 1.0
+    lti = calculate_lti(principal=600000, annual_gross_income=600000)
+    assert lti == 1.0
+    
+    # Principal: ₹12,00,000, Annual Income: ₹4,00,000 -> LTI = 3.0
+    lti2 = calculate_lti(principal=1200000, annual_gross_income=400000)
+    assert lti2 == 3.0
+    
+    # Zero principal -> 0.0
+    assert calculate_lti(principal=0, annual_gross_income=500000) == 0.0
+

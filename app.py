@@ -498,7 +498,7 @@ elif selected_page == "Loan Approval Prediction":
             st.markdown("<hr style='border-color: rgba(255,255,255,0.08); margin: 16px 0;'>", unsafe_allow_html=True)
             st.markdown("<p style='color:#38bdf8; font-size:0.85rem; margin-bottom:12px;'><strong>Monthly Incomes & Requested Facility (₹ INR)</strong></p>", unsafe_allow_html=True)
             
-            c_ai, c_cai = st.columns(2)
+            c_ai, c_cai, c_deb = st.columns(3)
             with c_ai:
                 applicant_income = st.number_input(
                     "Applicant Monthly Income (₹)",
@@ -508,7 +508,7 @@ elif selected_page == "Loan Approval Prediction":
                     step=2500,
                     help="Gross monthly salary or business income in Rupees (₹)"
                 )
-                st.caption(f"Equivalent: **{format_inr(applicant_income)} / month**")
+                st.caption(f"**{format_inr(applicant_income)} / month**")
             with c_cai:
                 coapplicant_income = st.number_input(
                     "Co-Applicant Monthly Income (₹)",
@@ -518,11 +518,20 @@ elif selected_page == "Loan Approval Prediction":
                     step=2500,
                     help="Spouse or co-borrower monthly income in Rupees (₹)"
                 )
-                st.caption(f"Equivalent: **{format_inr(coapplicant_income)} / month**")
+                st.caption(f"**{format_inr(coapplicant_income)} / month**")
+            with c_deb:
+                existing_debt = st.number_input(
+                    "Existing Monthly EMIs (₹)",
+                    min_value=0,
+                    max_value=300000,
+                    value=0,
+                    step=1000,
+                    help="Current ongoing debt obligations and loan EMIs in Rupees (₹)"
+                )
+                st.caption(f"**{format_inr(existing_debt)} / month**")
                 
-            c_la, c_lat, c_ch = st.columns(3)
+            c_la, c_ir = st.columns(2)
             with c_la:
-                # Default amount suggested by category
                 default_k = int(cat_info["default_amount"] / 1000)
                 loan_amount_k = st.number_input(
                     "Requested Loan (₹ in Thousands)",
@@ -530,10 +539,22 @@ elif selected_page == "Loan Approval Prediction":
                     max_value=10000,
                     value=min(default_k, 1000),
                     step=25,
-                    help="In dataset format (e.g., 250 represents ₹2,50,000 = 2.5 Lakhs)"
+                    help="In dataset scale: e.g., 300 represents ₹3,00,000 (3 Lakhs)"
                 )
                 actual_loan_rupees = loan_amount_k * 1000
                 st.caption(f"Principal: **{format_inr(actual_loan_rupees)}**")
+            with c_ir:
+                annual_rate_input = st.slider(
+                    "Annual Interest Rate (%)",
+                    min_value=float(cat_info["min_interest_rate"]),
+                    max_value=float(cat_info["max_interest_rate"]),
+                    value=float(cat_info["default_interest_rate"]),
+                    step=0.25,
+                    help=f"Configurable annual interest rate for {loan_cat}. Illustrative benchmark range: {cat_info['min_interest_rate']}% - {cat_info['max_interest_rate']}%."
+                )
+                st.caption(f"Monthly Rate: **{annual_rate_input / 12.0:.4f}% / mo**")
+                
+            c_lat, c_ch = st.columns(2)
             with c_lat:
                 suggested_months = cat_info["default_tenure_years"] * 12
                 term_options = [360, 240, 180, 120, 84, 60, 36, 12]
@@ -579,7 +600,11 @@ elif selected_page == "Loan Approval Prediction":
                 }
                 
                 try:
-                    res = predictor.predict(input_payload)
+                    res = predictor.predict(
+                        input_payload,
+                        annual_interest_rate=annual_rate_input,
+                        existing_monthly_debt=existing_debt
+                    )
                     is_appr = res["is_approved"]
                     conf_appr = res["approval_confidence"] * 100
                     conf_rej = res["rejection_confidence"] * 100
@@ -606,16 +631,22 @@ elif selected_page == "Loan Approval Prediction":
                         """, unsafe_allow_html=True)
                         
                     st.markdown("<br>", unsafe_allow_html=True)
-                    st.markdown("<h4 style='color:#f8fafc; font-size:1rem; font-weight:600;'>Key Financial Indicators (INR Basis)</h4>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='color:#f8fafc; font-size:1rem; font-weight:600;'>Financial Affordability & Cash-Flow Diagnostics</h4>", unsafe_allow_html=True)
                     fin = res["financial_indicators"]
                     
                     r1, r2 = st.columns(2)
-                    r1.metric("Total Monthly Income", format_inr(fin['total_income']))
-                    r2.metric("Estimated Monthly EMI", format_inr(fin['monthly_installment']))
+                    r1.metric("Proposed Monthly EMI", f"₹{fin['proposed_emi']:,.2f}", help="Calculated via reducing-balance amortization formula with interest")
+                    r2.metric("Total Monthly Debt Service", f"₹{fin['total_monthly_debt']:,.2f}", help="Existing Monthly EMIs + Proposed EMI")
                     
                     r3, r4 = st.columns(2)
-                    r3.metric("Debt-to-Income (DTI)", f"{fin['debt_to_income_pct']:.1f}%")
-                    r4.metric("Loan-to-Income (LTI)", f"{fin['loan_to_income_ratio']:.2f}x")
+                    dti_val = fin['debt_to_income_pct']
+                    dti_delta = "Healthy" if dti_val <= 35 else ("Moderate" if dti_val <= 50 else "High Risk")
+                    r3.metric("Debt-to-Income (DTI)", f"{dti_val:.1f}%", delta=dti_delta, delta_color="inverse" if dti_val > 50 else "normal", help="Formula: (Existing EMIs + Proposed EMI) / Monthly Income × 100")
+                    r4.metric("Loan-to-Income (LTI)", f"{fin['loan_to_income_ratio']:.2f}x", help="Formula: Principal / Annual Gross Household Income")
+                    
+                    r5, r6 = st.columns(2)
+                    r5.metric("Total Interest Payable", format_inr(fin['total_interest']), help="Total interest over full tenure")
+                    r6.metric("Total Repayment Amount", format_inr(fin['total_repayment']), help="Principal + Total Interest")
                     
                     fig_gauge = go.Figure(go.Indicator(
                         mode="gauge+number",
@@ -635,7 +666,7 @@ elif selected_page == "Loan Approval Prediction":
                             }
                         }
                     ))
-                    fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", height=200, margin=dict(t=25, b=10, l=20, r=20))
+                    fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", height=190, margin=dict(t=25, b=10, l=20, r=20))
                     st.plotly_chart(fig_gauge, use_container_width=True)
                     
                     # Explainable Factor Attribution & Suggestions
@@ -652,10 +683,16 @@ elif selected_page == "Loan Approval Prediction":
                     pred_export_df = pd.DataFrame([{
                         **input_payload,
                         "Loan_Category": loan_cat,
+                        "Annual_Interest_Rate_Pct": annual_rate_input,
                         "ApplicantIncome_INR": applicant_income,
+                        "CoapplicantIncome_INR": coapplicant_income,
+                        "Existing_Monthly_Debt_INR": existing_debt,
                         "LoanAmount_INR": actual_loan_rupees,
-                        "Estimated_EMI_INR": fin['monthly_installment'],
+                        "Proposed_EMI_INR": fin['proposed_emi'],
+                        "Total_Interest_INR": fin['total_interest'],
+                        "Total_Repayment_INR": fin['total_repayment'],
                         "DTI_Pct": fin['debt_to_income_pct'],
+                        "LTI_Ratio": fin['loan_to_income_ratio'],
                         "Status": res["prediction_status"],
                         "Approval_Probability": f"{conf_appr:.2f}%"
                     }])
@@ -671,6 +708,7 @@ elif selected_page == "Loan Approval Prediction":
                     st.error(f"Inference error encountered: {str(e)}")
                     
         st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ------------------------------------------------------------------------------------------
 # PAGE 3: EMI CALCULATOR

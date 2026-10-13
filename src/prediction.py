@@ -8,7 +8,7 @@ import os
 import joblib
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
 
 from src.preprocessing import (
     add_engineered_features,
@@ -16,6 +16,8 @@ from src.preprocessing import (
     CATEGORICAL_FEATURES,
     REVERSE_TARGET_MAP
 )
+from src.financial import calculate_emi, calculate_lti
+
 
 class LoanPredictionService:
     def __init__(self, model_path: str = None):
@@ -59,10 +61,16 @@ class LoanPredictionService:
             
         return True, "Valid"
         
-    def predict(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    def predict(
+        self,
+        input_data: Dict[str, Any],
+        annual_interest_rate: Optional[float] = None,
+        existing_monthly_debt: float = 0.0
+    ) -> Dict[str, Any]:
         """
         Accepts dictionary of raw applicant inputs, applies domain feature engineering,
-        and generates model prediction and calibrated probabilities.
+        generates model prediction and calibrated probabilities, and calculates
+        financially verified reducing-balance EMI, DTI, and LTI metrics.
         """
         is_valid, msg = self.validate_input(input_data)
         if not is_valid:
@@ -87,10 +95,10 @@ class LoanPredictionService:
             "Property_Area": str(input_data["Property_Area"])
         }
         
+        # ML Inference using original preprocessor schema
         df_input = pd.DataFrame([record])
         df_engineered = add_engineered_features(df_input)
         
-        # Inference
         pred_label_idx = self.pipeline.predict(df_engineered)[0]
         status = REVERSE_TARGET_MAP.get(pred_label_idx, "Unknown")
         
@@ -106,10 +114,32 @@ class LoanPredictionService:
                 "Rejected": round(rejection_confidence, 4)
             }
             
-        # Key Financial Indicators
-        tot_income = record["ApplicantIncome"] + record["CoapplicantIncome"]
-        monthly_installment = (record["LoanAmount"] * 1000) / max(record["Loan_Amount_Term"], 1)
-        debt_to_income = (monthly_installment / max(tot_income, 1)) * 100.0
+        # Financial Calculations (Reducing-balance EMI with interest)
+        rate = annual_interest_rate
+        if rate is None:
+            rate = float(input_data.get("Annual_Interest_Rate", 10.5))
+            
+        existing_debt = float(input_data.get("Existing_Monthly_Debt", existing_monthly_debt))
+        principal_inr = record["LoanAmount"] * 1000.0
+        tenure_months = int(record["Loan_Amount_Term"])
+        
+        emi_calc = calculate_emi(
+            principal=principal_inr,
+            annual_interest_rate=rate,
+            tenure_months=tenure_months
+        )
+        proposed_emi = emi_calc["monthly_emi"]
+        total_monthly_income = record["ApplicantIncome"] + record["CoapplicantIncome"]
+        total_monthly_debt = existing_debt + proposed_emi
+        
+        if total_monthly_income > 0:
+            dti_pct = round((total_monthly_debt / total_monthly_income) * 100.0, 2)
+        else:
+            dti_pct = 100.0 if total_monthly_debt > 0 else 0.0
+            
+        annual_gross_income = total_monthly_income * 12.0
+        lti_ratio = calculate_lti(principal_inr, annual_gross_income)
+        monthly_loan_to_income = round(principal_inr / max(total_monthly_income, 1.0), 2)
         
         # Transparent factor explanations based on underwriting parameters
         explanations = []
@@ -118,22 +148,21 @@ class LoanPredictionService:
         if record["Credit_History"] == 1.0:
             explanations.append("Positive credit track record meets benchmark underwriting criteria.")
         else:
-            explanations.append("Derogatory or missing credit history serves as a major risk barrier.")
+            explanations.append("Derogatory or missing credit history serves as a primary risk flag.")
             suggestions.append("Improve CIBIL track record by resolving delinquent dues before re-applying.")
             
-        if debt_to_income > 50.0:
-            explanations.append(f"High debt-to-income ratio ({debt_to_income:.1f}%) exceeds the 50% prudential guideline.")
-            suggestions.append("Consider opting for a longer repayment tenure or reducing requested loan amount to lower monthly burden.")
-        elif debt_to_income <= 35.0:
-            explanations.append(f"Healthy debt-to-income ratio ({debt_to_income:.1f}%) indicates adequate cash-flow bandwidth.")
+        if dti_pct > 50.0:
+            explanations.append(f"Total post-loan debt service ({dti_pct:.1f}%) exceeds the 50% prudential guideline.")
+            suggestions.append("Consider opting for a longer repayment tenure or reducing requested loan amount to lower monthly debt service.")
+        elif dti_pct <= 35.0:
+            explanations.append(f"Healthy debt-to-income ratio ({dti_pct:.1f}%) demonstrates comfortable repayment buffer.")
             
-        loan_inc_ratio = (record["LoanAmount"] * 1000) / max(tot_income, 1)
-        if loan_inc_ratio > 30.0:
-            explanations.append(f"Requested loan amount is high relative to monthly household income ({loan_inc_ratio:.1f}x).")
-            suggestions.append("Adding a co-applicant with independent verifiable income can strengthen application leverage.")
+        if lti_ratio > 4.5:
+            explanations.append(f"Loan-to-income ratio ({lti_ratio:.2f}x annual income) is high relative to household earnings.")
+            suggestions.append("Adding a co-applicant with verifiable independent income can enhance borrowing capacity.")
             
         if not suggestions:
-            suggestions.append("Maintain timely debt service and preserve liquidity reserves to sustain approval eligibility.")
+            suggestions.append("Maintain timely debt service and preserve liquidity reserves to sustain strong borrowing eligibility.")
 
         return {
             "prediction_status": status,
@@ -142,14 +171,26 @@ class LoanPredictionService:
             "rejection_confidence": rejection_confidence,
             "probabilities": probabilities,
             "financial_indicators": {
-                "total_income": tot_income,
-                "monthly_installment": round(monthly_installment, 2),
-                "debt_to_income_pct": round(debt_to_income, 2),
-                "loan_to_income_ratio": round((record["LoanAmount"] * 1000) / max(tot_income, 1), 2)
+                "principal_inr": principal_inr,
+                "annual_interest_rate": rate,
+                "tenure_months": tenure_months,
+                "total_income": total_monthly_income,
+                "monthly_income": total_monthly_income,
+                "existing_monthly_debt": existing_debt,
+                "monthly_installment": proposed_emi,
+                "proposed_emi": proposed_emi,
+                "total_monthly_debt": round(total_monthly_debt, 2),
+                "total_interest": emi_calc["total_interest"],
+                "total_repayment": emi_calc["total_repayment"],
+                "debt_to_income_pct": dti_pct,
+                "loan_to_income_ratio": lti_ratio,
+                "loan_to_monthly_income": monthly_loan_to_income,
+                "repayment_method": "Reducing Balance Amortization"
             },
             "explanations": explanations,
             "educational_suggestions": suggestions,
             "model_used": "Soft Voting Ensemble (Random Forest + Extra Trees + KNN)",
             "limitations_note": "This prediction is generated by a synthetic ML model prototype for academic evaluation and does not constitute a guaranteed lending offer or regulatory credit score."
         }
+
 
