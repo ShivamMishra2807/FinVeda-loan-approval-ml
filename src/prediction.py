@@ -68,7 +68,8 @@ class LoanPredictionService:
         annual_interest_rate: Optional[float] = None,
         existing_monthly_debt: float = 0.0,
         loan_product: Optional[str] = None,
-        is_simulation_mode: bool = False
+        is_simulation_mode: bool = False,
+        **kwargs
     ) -> Dict[str, Any]:
         """
         Accepts dictionary of raw applicant inputs, applies domain feature engineering,

@@ -610,33 +610,9 @@ elif selected_page == "Loan Approval Prediction":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.caption(f"ℹ️ *{pricing_cfg['pricing_rationale']}*")
                 
             submit_btn = st.form_submit_button("⚡ Run Institutional Assessment", use_container_width=True)
         
-        # Administrator / Underwriter Simulation Mode (Clearly separated from normal applicant workflow)
-        with st.expander("🛠️ Underwriter Simulation Mode (Scenario & Stress Testing)"):
-            st.markdown("""
-            <div style="border-left: 3px solid #f59e0b; padding-left: 10px; margin-bottom: 10px;">
-                <span style="color: #fbbf24; font-size: 0.82rem; font-weight: 700;">⚠️ Internal Underwriter Tool:</span>
-                <span style="color: #94a3b8; font-size: 0.8rem;"> Ordinary retail applicants cannot alter interest rates. This control is reserved for credit risk officers to perform scenario sensitivity testing.</span>
-            </div>
-            """, unsafe_allow_html=True)
-            enable_sim = st.checkbox("Enable Simulation Rate Override", value=False, key="sim_override_toggle")
-            if enable_sim:
-                sim_override_rate = st.slider(
-                    "Simulated Annual Interest Rate (%)",
-                    min_value=float(pricing_cfg["min_interest_rate"]),
-                    max_value=float(pricing_cfg["max_interest_rate"]),
-                    value=float(disp_rate),
-                    step=0.25,
-                    help=f"Allowed range for {loan_cat}: {pricing_cfg['min_interest_rate']}% to {pricing_cfg['max_interest_rate']}%.",
-                    key="sim_override_slider"
-                )
-                st.warning(f"⚠️ Simulation Override Active: Evaluating loan at {sim_override_rate:.2f}% p.a.")
-            else:
-                sim_override_rate = None
-                
         st.markdown('</div>', unsafe_allow_html=True)
         
     with col_result:
@@ -667,10 +643,8 @@ elif selected_page == "Loan Approval Prediction":
                 try:
                     res = predictor.predict(
                         input_payload,
-                        annual_interest_rate=sim_override_rate if (enable_sim and sim_override_rate) else None,
                         existing_monthly_debt=existing_debt,
-                        loan_product=loan_cat,
-                        is_simulation_mode=bool(enable_sim and sim_override_rate)
+                        loan_product=loan_cat
                     )
                     is_appr = res["is_approved"]
                     conf_appr = res["approval_confidence"] * 100
