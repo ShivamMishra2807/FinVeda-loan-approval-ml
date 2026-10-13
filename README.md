@@ -77,15 +77,19 @@ FinVeda implements an institutional **interest-rate determination workflow** (`s
    - For credit risk officers and internal testing, an explicit Underwriter Simulation Mode allows testing rate sensitivity within regulatory product boundaries (`min_rate` to `max_rate`).
    - Any rate override is strictly labeled as a simulation.
 
-| Loan Category | Base Benchmark Rate | Illustrative Range | Benchmark Tenure | Standard Fee | Risk Loading Rules |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **Personal Loan** | 12.00% | 10.5% – 24.0% | 3 Years (36 Mos) | 1.50% | Adverse credit loading: +3.5% |
-| **Home Loan** | 8.50% | 7.5% – 11.0% | 20 Years (240 Mos) | 0.50% | Adverse credit loading: +1.5% |
-| **Car Loan** | 9.50% | 8.0% – 15.0% | 5 Years (60 Mos) | 1.00% | Adverse credit loading: +2.0% |
-| **Education Loan** | 9.50% | 8.0% – 14.0% | 7 Years (84 Mos) | 0.75% | Co-borrower credit loading: +2.0% |
-| **Business Loan** | 14.00% | 11.0% – 24.0% | 4 Years (48 Mos) | 2.00% | Adverse credit: +3.0%; Self-employed: +0.5% |
+| Loan Product | Illustrative Rate Range | Default Demonstration Rate | Typical Benchmark Tenure | Standard Fee |
+| :--- | :---: | :---: | :---: | :---: |
+| **Home Loan** | 7.5% – 10.0% | 8.50% | 20 Years (240 Mos) | 0.50% |
+| **New Car Loan** | 7.85% – 10.0% | 9.00% | 5 Years (60 Mos) | 1.00% |
+| **Used Car Loan** | 10.0% – 14.0% | 12.00% | 3 Years (36 Mos) | 1.50% |
+| **Education Loan** | 8.0% – 14.0% | 10.50% | 7 Years (84 Mos) | 0.75% |
+| **Personal Loan** | 11.0% – 22.0% | 15.00% | 3 Years (36 Mos) | 1.50% |
+| **Business Loan** | 11.0% – 18.0% | 14.00% | 4 Years (48 Mos) | 2.00% |
+| **Two-Wheeler Loan** | 10.0% – 16.0% | 13.00% | 3 Years (36 Mos) | 1.50% |
+| **Gold Loan** | 8.5% – 13.0% | 10.00% | 1 Year (12 Mos) | 0.50% |
 
-*Disclaimer: Rates and spreads are demonstration benchmark guidelines based on Indian retail banking standards, not binding lender contracts.*
+*Disclaimer: These are illustrative demonstration defaults informed by Indian lender pricing examples, not guaranteed current market rates. Stored and maintained in one central pricing configuration file (`src/pricing.py`).*
+
 
 
 

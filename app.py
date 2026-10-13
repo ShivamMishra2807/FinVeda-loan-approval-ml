@@ -474,14 +474,25 @@ elif selected_page == "Loan Approval Prediction":
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         st.markdown("<h3 style='margin-top:0; font-size:1.2rem; font-weight:700; color:#f8fafc;'>📋 Applicant Profile & Financial Parameters</h3>", unsafe_allow_html=True)
         
-        # Loan Type Selector for contextual illustrative defaults
+        # Loan Product Selector for institutional illustrative defaults
+        available_products = [
+            "Home Loan",
+            "New Car Loan",
+            "Used Car Loan",
+            "Education Loan",
+            "Personal Loan",
+            "Business Loan",
+            "Two-Wheeler Loan",
+            "Gold Loan"
+        ]
         loan_cat = st.selectbox(
-            "Select Loan Category",
-            list(LOAN_CATEGORIES.keys()),
-            help="Configures standard tenure and financial context."
+            "Select Loan Product",
+            available_products,
+            help="Configures standard tenure range, illustrative pricing corridor, and financial terms."
         )
         cat_info = LOAN_CATEGORIES[loan_cat]
-        st.caption(f"ℹ️ *{cat_info['description']} (Illustrative benchmark)*")
+        pricing_cfg = get_product_pricing_config(loan_cat)
+        st.caption(f"ℹ️ *{cat_info['description']} (Illustrative demonstration benchmark)*")
         
         with st.form("loan_application_form"):
             st.markdown("<p style='color:#94a3b8; font-size:0.85rem; margin-bottom:12px;'><strong>Demographic & Employment Details</strong></p>", unsafe_allow_html=True)
@@ -512,7 +523,7 @@ elif selected_page == "Loan Approval Prediction":
                     max_value=1000000,
                     value=45000,
                     step=2500,
-                    help="Gross monthly salary or business income in Rupees (₹)"
+                    help="Gross monthly salary or business receipts in Rupees (₹)"
                 )
                 st.caption(f"**{format_inr(applicant_income)} / month**")
             with c_cai:
@@ -550,14 +561,20 @@ elif selected_page == "Loan Approval Prediction":
                 actual_loan_rupees = loan_amount_k * 1000
                 st.caption(f"Principal: **{format_inr(actual_loan_rupees)}**")
             with c_lat:
-                suggested_months = cat_info["default_tenure_years"] * 12
-                term_options = [360, 240, 180, 120, 84, 60, 36, 12]
+                suggested_months = pricing_cfg.get("default_tenure_months", cat_info["default_tenure_years"] * 12)
+                min_m = pricing_cfg.get("min_tenure_months", 12)
+                max_m = pricing_cfg.get("max_tenure_months", 360)
+                standard_terms = [360, 240, 180, 120, 84, 60, 48, 36, 24, 12, 6]
+                term_options = [m for m in standard_terms if min_m <= m <= max_m]
+                if suggested_months not in term_options:
+                    term_options.append(suggested_months)
+                term_options = sorted(list(set(term_options)), reverse=True)
                 default_idx = term_options.index(suggested_months) if suggested_months in term_options else 0
                 loan_term = st.selectbox(
                     "Repayment Tenure",
                     term_options,
                     index=default_idx,
-                    format_func=lambda m: f"{m} Months ({m//12} Yrs)" if m >= 12 else f"{m} M"
+                    format_func=lambda m: f"{m} Months ({m//12} Yrs)" if m >= 12 else f"{m} Months"
                 )
                 
             c_ch, c_disp_rate = st.columns(2)
@@ -568,7 +585,6 @@ elif selected_page == "Loan Approval Prediction":
                     format_func=lambda x: "1.0 - Meets Guidelines (Clean)" if x == 1.0 else "0.0 - Derogatory / Delinquent"
                 )
             with c_disp_rate:
-                pricing_cfg = get_product_pricing_config(loan_cat)
                 base_r = pricing_cfg["default_illustrative_rate"]
                 min_r = pricing_cfg["min_interest_rate"]
                 max_r = pricing_cfg["max_interest_rate"]
@@ -586,15 +602,15 @@ elif selected_page == "Loan Approval Prediction":
                 <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 10px 14px; margin-top: 2px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 0.76rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Annual Rate</span>
-                        <span class="badge-pill badge-blue" style="font-size: 0.68rem; padding: 3px 8px;">System-Assigned</span>
+                        <span class="badge-pill badge-blue" style="font-size: 0.68rem; padding: 3px 8px;">Read-Only Institutional Rate</span>
                     </div>
                     <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin: 3px 0;">{disp_rate:.2f}% p.a.</div>
                     <div style="font-size: 0.74rem; color: #64748b;">
-                        Rules range: {min_r}% – {max_r}% ({loan_cat})
+                        Corridor: {min_r}% – {max_r}% ({loan_cat})
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.caption("ℹ️ *System-assigned based on product pricing rules. Applicants cannot arbitrarily set rates.*")
+                st.caption(f"ℹ️ *{pricing_cfg['pricing_rationale']}*")
                 
             submit_btn = st.form_submit_button("⚡ Run Institutional Assessment", use_container_width=True)
         
@@ -622,9 +638,9 @@ elif selected_page == "Loan Approval Prediction":
                 sim_override_rate = None
                 
         st.markdown('</div>', unsafe_allow_html=True)
-
         
     with col_result:
+
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
         st.markdown("<h3 style='margin-top:0; font-size:1.2rem; font-weight:700; color:#f8fafc;'>📈 Underwriting Decision Output</h3>", unsafe_allow_html=True)
         

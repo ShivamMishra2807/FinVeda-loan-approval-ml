@@ -14,65 +14,21 @@ from src.pricing import (
     get_product_pricing_config
 )
 
-# Configurable Loan Category Defaults
-# Values are illustrative benchmark market ranges for Indian retail banking
-LOAN_CATEGORIES: Dict[str, Dict[str, Any]] = {
-    "Personal Loan": {
-        "default_interest_rate": 12.0,
-        "min_interest_rate": 10.5,
-        "max_interest_rate": 24.0,
-        "default_tenure_years": 3,
-        "min_tenure_years": 1,
-        "max_tenure_years": 7,
-        "default_amount": 300000.0,
-        "processing_fee_pct": 1.5,
-        "description": "Unsecured personal credit facility for immediate personal expenses or medical needs."
-    },
-    "Home Loan": {
-        "default_interest_rate": 8.5,
-        "min_interest_rate": 7.5,
-        "max_interest_rate": 11.0,
-        "default_tenure_years": 20,
-        "min_tenure_years": 5,
-        "max_tenure_years": 30,
-        "default_amount": 3500000.0,
-        "processing_fee_pct": 0.5,
-        "description": "Long-term secured facility for residential property purchase, renovation, or construction."
-    },
-    "Car Loan": {
-        "default_interest_rate": 9.5,
-        "min_interest_rate": 8.0,
-        "max_interest_rate": 15.0,
-        "default_tenure_years": 5,
-        "min_tenure_years": 1,
-        "max_tenure_years": 8,
-        "default_amount": 800000.0,
-        "processing_fee_pct": 1.0,
-        "description": "Secured vehicle financing facility with fixed repayment terms."
-    },
-    "Education Loan": {
-        "default_interest_rate": 9.5,
-        "min_interest_rate": 8.0,
-        "max_interest_rate": 14.0,
-        "default_tenure_years": 7,
-        "min_tenure_years": 2,
-        "max_tenure_years": 15,
-        "default_amount": 1200000.0,
-        "processing_fee_pct": 0.75,
-        "description": "Academic finance facility for domestic or overseas higher education."
-    },
-    "Business Loan": {
-        "default_interest_rate": 14.0,
-        "min_interest_rate": 11.0,
-        "max_interest_rate": 24.0,
-        "default_tenure_years": 4,
-        "min_tenure_years": 1,
-        "max_tenure_years": 10,
-        "default_amount": 1500000.0,
-        "processing_fee_pct": 2.0,
-        "description": "Commercial loan facility for enterprise expansion, machinery, or working capital."
+# Configurable Loan Category Defaults derived from Central Pricing Catalog
+LOAN_CATEGORIES: Dict[str, Dict[str, Any]] = {}
+for _prod_name, _pdata in PRODUCT_PRICING_CATALOG.items():
+    LOAN_CATEGORIES[_prod_name] = {
+        "default_interest_rate": _pdata["default_illustrative_rate"],
+        "min_interest_rate": _pdata["min_interest_rate"],
+        "max_interest_rate": _pdata["max_interest_rate"],
+        "default_tenure_years": max(1, _pdata["default_tenure_months"] // 12),
+        "min_tenure_years": max(1, _pdata["min_tenure_months"] // 12),
+        "max_tenure_years": max(1, _pdata["max_tenure_months"] // 12),
+        "default_amount": float(_pdata.get("default_amount", 500000.0)),
+        "processing_fee_pct": float(_pdata.get("processing_fee_pct", 1.0)),
+        "description": _pdata["description"]
     }
-}
+
 
 
 def calculate_lti(principal: float, annual_gross_income: float) -> float:
