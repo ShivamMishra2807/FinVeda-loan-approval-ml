@@ -8,6 +8,12 @@ from typing import Dict, Any, List, Optional, Tuple
 import pandas as pd
 import numpy as np
 
+from src.pricing import (
+    PRODUCT_PRICING_CATALOG,
+    determine_interest_rate,
+    get_product_pricing_config
+)
+
 # Configurable Loan Category Defaults
 # Values are illustrative benchmark market ranges for Indian retail banking
 LOAN_CATEGORIES: Dict[str, Dict[str, Any]] = {

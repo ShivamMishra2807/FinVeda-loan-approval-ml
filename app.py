@@ -29,6 +29,12 @@ from src.financial import (
     compare_loan_scenarios,
     LOAN_CATEGORIES
 )
+from src.pricing import (
+    PRODUCT_PRICING_CATALOG,
+    determine_interest_rate,
+    get_product_pricing_config
+)
+
 
 # Page Configuration - Set to Wide Layout
 st.set_page_config(
@@ -530,7 +536,7 @@ elif selected_page == "Loan Approval Prediction":
                 )
                 st.caption(f"**{format_inr(existing_debt)} / month**")
                 
-            c_la, c_ir = st.columns(2)
+            c_la, c_lat = st.columns(2)
             with c_la:
                 default_k = int(cat_info["default_amount"] / 1000)
                 loan_amount_k = st.number_input(
@@ -543,18 +549,6 @@ elif selected_page == "Loan Approval Prediction":
                 )
                 actual_loan_rupees = loan_amount_k * 1000
                 st.caption(f"Principal: **{format_inr(actual_loan_rupees)}**")
-            with c_ir:
-                annual_rate_input = st.slider(
-                    "Annual Interest Rate (%)",
-                    min_value=float(cat_info["min_interest_rate"]),
-                    max_value=float(cat_info["max_interest_rate"]),
-                    value=float(cat_info["default_interest_rate"]),
-                    step=0.25,
-                    help=f"Configurable annual interest rate for {loan_cat}. Illustrative benchmark range: {cat_info['min_interest_rate']}% - {cat_info['max_interest_rate']}%."
-                )
-                st.caption(f"Monthly Rate: **{annual_rate_input / 12.0:.4f}% / mo**")
-                
-            c_lat, c_ch = st.columns(2)
             with c_lat:
                 suggested_months = cat_info["default_tenure_years"] * 12
                 term_options = [360, 240, 180, 120, 84, 60, 36, 12]
@@ -565,15 +559,70 @@ elif selected_page == "Loan Approval Prediction":
                     index=default_idx,
                     format_func=lambda m: f"{m} Months ({m//12} Yrs)" if m >= 12 else f"{m} M"
                 )
+                
+            c_ch, c_disp_rate = st.columns(2)
             with c_ch:
                 credit_history = st.selectbox(
                     "CIBIL / Credit History Record",
                     [1.0, 0.0],
                     format_func=lambda x: "1.0 - Meets Guidelines (Clean)" if x == 1.0 else "0.0 - Derogatory / Delinquent"
                 )
+            with c_disp_rate:
+                pricing_cfg = get_product_pricing_config(loan_cat)
+                base_r = pricing_cfg["default_illustrative_rate"]
+                min_r = pricing_cfg["min_interest_rate"]
+                max_r = pricing_cfg["max_interest_rate"]
+                
+                # Pre-calculate indicative rate for display in read-only box
+                indicative_res = determine_interest_rate(
+                    loan_product=loan_cat,
+                    credit_history=credit_history,
+                    is_self_employed=(self_employed == "Yes"),
+                    is_simulation_mode=False
+                )
+                disp_rate = indicative_res["applicable_annual_rate"]
+                
+                st.markdown(f"""
+                <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 10px 14px; margin-top: 2px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.76rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Annual Rate</span>
+                        <span class="badge-pill badge-blue" style="font-size: 0.68rem; padding: 3px 8px;">System-Assigned</span>
+                    </div>
+                    <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin: 3px 0;">{disp_rate:.2f}% p.a.</div>
+                    <div style="font-size: 0.74rem; color: #64748b;">
+                        Rules range: {min_r}% – {max_r}% ({loan_cat})
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.caption("ℹ️ *System-assigned based on product pricing rules. Applicants cannot arbitrarily set rates.*")
                 
             submit_btn = st.form_submit_button("⚡ Run Institutional Assessment", use_container_width=True)
+        
+        # Administrator / Underwriter Simulation Mode (Clearly separated from normal applicant workflow)
+        with st.expander("🛠️ Underwriter Simulation Mode (Scenario & Stress Testing)"):
+            st.markdown("""
+            <div style="border-left: 3px solid #f59e0b; padding-left: 10px; margin-bottom: 10px;">
+                <span style="color: #fbbf24; font-size: 0.82rem; font-weight: 700;">⚠️ Internal Underwriter Tool:</span>
+                <span style="color: #94a3b8; font-size: 0.8rem;"> Ordinary retail applicants cannot alter interest rates. This control is reserved for credit risk officers to perform scenario sensitivity testing.</span>
+            </div>
+            """, unsafe_allow_html=True)
+            enable_sim = st.checkbox("Enable Simulation Rate Override", value=False, key="sim_override_toggle")
+            if enable_sim:
+                sim_override_rate = st.slider(
+                    "Simulated Annual Interest Rate (%)",
+                    min_value=float(pricing_cfg["min_interest_rate"]),
+                    max_value=float(pricing_cfg["max_interest_rate"]),
+                    value=float(disp_rate),
+                    step=0.25,
+                    help=f"Allowed range for {loan_cat}: {pricing_cfg['min_interest_rate']}% to {pricing_cfg['max_interest_rate']}%.",
+                    key="sim_override_slider"
+                )
+                st.warning(f"⚠️ Simulation Override Active: Evaluating loan at {sim_override_rate:.2f}% p.a.")
+            else:
+                sim_override_rate = None
+                
         st.markdown('</div>', unsafe_allow_html=True)
+
         
     with col_result:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
@@ -602,12 +651,15 @@ elif selected_page == "Loan Approval Prediction":
                 try:
                     res = predictor.predict(
                         input_payload,
-                        annual_interest_rate=annual_rate_input,
-                        existing_monthly_debt=existing_debt
+                        annual_interest_rate=sim_override_rate if (enable_sim and sim_override_rate) else None,
+                        existing_monthly_debt=existing_debt,
+                        loan_product=loan_cat,
+                        is_simulation_mode=bool(enable_sim and sim_override_rate)
                     )
                     is_appr = res["is_approved"]
                     conf_appr = res["approval_confidence"] * 100
                     conf_rej = res["rejection_confidence"] * 100
+                    fin = res["financial_indicators"]
                     
                     if is_appr:
                         st.markdown(f"""
@@ -631,8 +683,25 @@ elif selected_page == "Loan Approval Prediction":
                         """, unsafe_allow_html=True)
                         
                     st.markdown("<br>", unsafe_allow_html=True)
+                    
+                    # Interest Rate Source & Pricing Transparency Banner
+                    is_sim = fin.get("is_simulation", False)
+                    pill_badge = '<span class="badge-pill badge-amber">⚠️ Simulation Override Mode</span>' if is_sim else '<span class="badge-pill badge-blue">✓ Institutional Pricing Rule</span>'
+                    st.markdown(f"""
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Applicable Interest Rate</span>
+                            {pill_badge}
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;">{fin['annual_interest_rate']:.2f}% p.a.</div>
+                        <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 4px;">
+                            <strong>Source:</strong> {fin.get('pricing_source', 'Institutional Pricing Rules')}<br>
+                            <strong>Details:</strong> {fin.get('pricing_rationale', 'Evaluated based on product pricing matrix and risk profile.')}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
                     st.markdown("<h4 style='color:#f8fafc; font-size:1rem; font-weight:600;'>Financial Affordability & Cash-Flow Diagnostics</h4>", unsafe_allow_html=True)
-                    fin = res["financial_indicators"]
                     
                     r1, r2 = st.columns(2)
                     r1.metric("Proposed Monthly EMI", f"₹{fin['proposed_emi']:,.2f}", help="Calculated via reducing-balance amortization formula with interest")
@@ -683,7 +752,8 @@ elif selected_page == "Loan Approval Prediction":
                     pred_export_df = pd.DataFrame([{
                         **input_payload,
                         "Loan_Category": loan_cat,
-                        "Annual_Interest_Rate_Pct": annual_rate_input,
+                        "Pricing_Mode": "Simulation Override" if is_sim else "Automated Institutional Pricing",
+                        "Annual_Interest_Rate_Pct": fin['annual_interest_rate'],
                         "ApplicantIncome_INR": applicant_income,
                         "CoapplicantIncome_INR": coapplicant_income,
                         "Existing_Monthly_Debt_INR": existing_debt,
@@ -704,6 +774,7 @@ elif selected_page == "Loan Approval Prediction":
                         mime="text/csv",
                         use_container_width=True
                     )
+
                 except Exception as e:
                     st.error(f"Inference error encountered: {str(e)}")
                     

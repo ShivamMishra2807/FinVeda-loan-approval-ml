@@ -17,6 +17,7 @@ from src.preprocessing import (
     REVERSE_TARGET_MAP
 )
 from src.financial import calculate_emi, calculate_lti
+from src.pricing import determine_interest_rate
 
 
 class LoanPredictionService:
@@ -65,12 +66,15 @@ class LoanPredictionService:
         self,
         input_data: Dict[str, Any],
         annual_interest_rate: Optional[float] = None,
-        existing_monthly_debt: float = 0.0
+        existing_monthly_debt: float = 0.0,
+        loan_product: Optional[str] = None,
+        is_simulation_mode: bool = False
     ) -> Dict[str, Any]:
         """
         Accepts dictionary of raw applicant inputs, applies domain feature engineering,
         generates model prediction and calibrated probabilities, and calculates
-        financially verified reducing-balance EMI, DTI, and LTI metrics.
+        financially verified reducing-balance EMI, DTI, and LTI metrics using
+        institutional pricing rules.
         """
         is_valid, msg = self.validate_input(input_data)
         if not is_valid:
@@ -114,12 +118,40 @@ class LoanPredictionService:
                 "Rejected": round(rejection_confidence, 4)
             }
             
-        # Financial Calculations (Reducing-balance EMI with interest)
-        rate = annual_interest_rate
-        if rate is None:
-            rate = float(input_data.get("Annual_Interest_Rate", 10.5))
-            
+        # Institutional Rate Determination
+        product = loan_product or input_data.get("Loan_Category") or "Personal Loan"
         existing_debt = float(input_data.get("Existing_Monthly_Debt", existing_monthly_debt))
+        total_monthly_income = record["ApplicantIncome"] + record["CoapplicantIncome"]
+        pre_dti = (existing_debt / total_monthly_income * 100.0) if total_monthly_income > 0 else 0.0
+
+        if annual_interest_rate is not None and is_simulation_mode:
+            pricing_res = determine_interest_rate(
+                loan_product=product,
+                override_rate=annual_interest_rate,
+                is_simulation_mode=True
+            )
+        elif annual_interest_rate is not None and not is_simulation_mode:
+            # Explicit rate provided (e.g. from upstream pricing module)
+            pricing_res = {
+                "applicable_annual_rate": float(annual_interest_rate),
+                "base_rate": float(annual_interest_rate),
+                "risk_adjustments": [],
+                "is_simulation": False,
+                "pricing_source": f"Institutional Pricing Rules ({product})",
+                "pricing_rationale": "Applicable rate evaluated via institutional product rules.",
+                "disclaimer": "Illustrative demonstration pricing rule."
+            }
+        else:
+            # Standard automated applicant pricing workflow
+            pricing_res = determine_interest_rate(
+                loan_product=product,
+                credit_history=record["Credit_History"],
+                is_self_employed=(record["Self_Employed"] == "Yes"),
+                existing_dti_pct=pre_dti,
+                is_simulation_mode=False
+            )
+
+        rate = pricing_res["applicable_annual_rate"]
         principal_inr = record["LoanAmount"] * 1000.0
         tenure_months = int(record["Loan_Amount_Term"])
         
@@ -129,7 +161,6 @@ class LoanPredictionService:
             tenure_months=tenure_months
         )
         proposed_emi = emi_calc["monthly_emi"]
-        total_monthly_income = record["ApplicantIncome"] + record["CoapplicantIncome"]
         total_monthly_debt = existing_debt + proposed_emi
         
         if total_monthly_income > 0:
@@ -140,6 +171,7 @@ class LoanPredictionService:
         annual_gross_income = total_monthly_income * 12.0
         lti_ratio = calculate_lti(principal_inr, annual_gross_income)
         monthly_loan_to_income = round(principal_inr / max(total_monthly_income, 1.0), 2)
+
         
         # Transparent factor explanations based on underwriting parameters
         explanations = []
@@ -173,6 +205,11 @@ class LoanPredictionService:
             "financial_indicators": {
                 "principal_inr": principal_inr,
                 "annual_interest_rate": rate,
+                "pricing_source": pricing_res.get("pricing_source", "Institutional Pricing Rules"),
+                "pricing_rationale": pricing_res.get("pricing_rationale", ""),
+                "is_simulation": pricing_res.get("is_simulation", False),
+                "risk_adjustments": pricing_res.get("risk_adjustments", []),
+                "pricing_disclaimer": pricing_res.get("disclaimer", ""),
                 "tenure_months": tenure_months,
                 "total_income": total_monthly_income,
                 "monthly_income": total_monthly_income,
@@ -187,6 +224,7 @@ class LoanPredictionService:
                 "loan_to_monthly_income": monthly_loan_to_income,
                 "repayment_method": "Reducing Balance Amortization"
             },
+
             "explanations": explanations,
             "educational_suggestions": suggestions,
             "model_used": "Soft Voting Ensemble (Random Forest + Extra Trees + KNN)",
