@@ -692,21 +692,40 @@ elif selected_page == "ML Models & Analytics":
                     metrics_df,
                     x="Train_Time_Sec",
                     y="Accuracy",
-                    size=[20]*len(metrics_df),
+                    size=[16]*len(metrics_df),
                     color="Model",
-                    text="Model",
+                    hover_name="Model",
+                    hover_data={
+                        "Train_Time_Sec": ":.3f",
+                        "Accuracy": ":.2%",
+                        "Infer_Time_Sec": ":.4f",
+                        "Model": False
+                    },
                     title="<b>Accuracy vs Training Latency Trade-off</b>",
-                    labels={"Train_Time_Sec": "Training Latency (seconds)", "Accuracy": "Test Accuracy"},
+                    labels={
+                        "Train_Time_Sec": "Training Latency (seconds)",
+                        "Accuracy": "Test Accuracy",
+                        "Infer_Time_Sec": "Inference Latency (sec)"
+                    },
                     template="plotly_dark"
                 )
-                fig_latency.update_traces(textposition="top center")
                 fig_latency.update_layout(
                     transition=dict(duration=500, easing="cubic-in-out"),
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    showlegend=False,
-                    height=400,
-                    margin=dict(t=40, b=20, l=20, r=20)
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=-0.22,
+                        xanchor="center",
+                        x=0.5,
+                        font=dict(size=10, color="#94a3b8")
+                    ),
+                    xaxis=dict(gridcolor="rgba(255,255,255,0.08)", title="Training Latency (seconds)"),
+                    yaxis=dict(gridcolor="rgba(255,255,255,0.08)", tickformat=".1%"),
+                    height=420,
+                    margin=dict(t=40, b=80, l=20, r=20)
                 )
                 st.plotly_chart(fig_latency, use_container_width=True)
 
