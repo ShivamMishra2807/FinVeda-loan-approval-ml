@@ -12,6 +12,7 @@ Includes 6 dedicated modules:
 
 import os
 import json
+import time
 import joblib
 import numpy as np
 import pandas as pd
@@ -74,7 +75,66 @@ st.markdown("""
         max-width: 95% !important;
     }
     
-    /* Metric Cards */
+    /* Keyframe Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes shimmerBar {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    
+    @keyframes pulseGlowApproved {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45), 0 10px 32px rgba(16, 185, 129, 0.25);
+            border-color: #10b981;
+        }
+        50% {
+            box-shadow: 0 0 0 14px rgba(16, 185, 129, 0), 0 16px 44px rgba(16, 185, 129, 0.45);
+            border-color: #34d399;
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), 0 10px 32px rgba(16, 185, 129, 0.25);
+            border-color: #10b981;
+        }
+    }
+    
+    @keyframes pulseGlowRejected {
+        0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45), 0 10px 32px rgba(239, 68, 68, 0.25);
+            border-color: #ef4444;
+        }
+        50% {
+            box-shadow: 0 0 0 14px rgba(239, 68, 68, 0), 0 16px 44px rgba(239, 68, 68, 0.45);
+            border-color: #f87171;
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 10px 32px rgba(239, 68, 68, 0.25);
+            border-color: #ef4444;
+        }
+    }
+    
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    @keyframes pulseDot {
+        0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+        70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+    
+    /* Metric Cards with Shimmer & Entrance Animation */
     .metric-card {
         background: rgba(30, 41, 59, 0.7);
         backdrop-filter: blur(14px);
@@ -83,21 +143,23 @@ st.markdown("""
         border-radius: 16px;
         padding: 20px 22px;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         position: relative;
         overflow: hidden;
+        animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .metric-card::before {
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0; height: 3px;
-        background: linear-gradient(90deg, #0ea5e9, #38bdf8, #6366f1);
-        opacity: 0.85;
+        background: linear-gradient(90deg, #0ea5e9, #38bdf8, #818cf8, #38bdf8, #0ea5e9);
+        background-size: 200% 100%;
+        animation: shimmerBar 4s infinite linear;
     }
     .metric-card:hover {
-        transform: translateY(-3px);
-        border-color: rgba(56, 189, 248, 0.4);
-        box-shadow: 0 14px 40px 0 rgba(14, 165, 233, 0.2);
+        transform: translateY(-4px) scale(1.015);
+        border-color: rgba(56, 189, 248, 0.45);
+        box-shadow: 0 16px 44px 0 rgba(14, 165, 233, 0.28), 0 0 20px rgba(56, 189, 248, 0.15);
     }
     .metric-title {
         color: #94a3b8;
@@ -114,6 +176,10 @@ st.markdown("""
         line-height: 1.2;
         letter-spacing: -0.02em;
         margin-bottom: 4px;
+        transition: color 0.3s ease;
+    }
+    .metric-card:hover .metric-val {
+        color: #38bdf8;
     }
     .metric-sub {
         color: #38bdf8;
@@ -121,7 +187,7 @@ st.markdown("""
         font-weight: 500;
     }
     
-    /* Glass Cards */
+    /* Glass Cards with Entrance & Hover Glow */
     .glass-card {
         background: rgba(23, 32, 51, 0.75);
         backdrop-filter: blur(16px);
@@ -131,41 +197,52 @@ st.markdown("""
         padding: 24px;
         margin-bottom: 22px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .glass-card:hover {
+        border-color: rgba(56, 189, 248, 0.25);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.38), 0 0 24px rgba(56, 189, 248, 0.08);
     }
     
-    /* Decision Banner Styles */
+    /* Decision Banner Styles with Breathing Glow */
     .result-approved {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.28) 100%);
-        border: 1px solid #10b981;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.20) 0%, rgba(5, 150, 105, 0.35) 100%);
+        border: 2px solid #10b981;
         border-radius: 16px;
-        padding: 26px 22px;
+        padding: 28px 24px;
         text-align: center;
-        box-shadow: 0 10px 32px rgba(16, 185, 129, 0.25);
+        animation: pulseGlowApproved 2.8s infinite ease-in-out, fadeInUp 0.4s ease-out;
     }
     .result-rejected {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.28) 100%);
-        border: 1px solid #ef4444;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.20) 0%, rgba(220, 38, 38, 0.35) 100%);
+        border: 2px solid #ef4444;
         border-radius: 16px;
-        padding: 26px 22px;
+        padding: 28px 24px;
         text-align: center;
-        box-shadow: 0 10px 32px rgba(239, 68, 68, 0.25);
+        animation: pulseGlowRejected 2.8s infinite ease-in-out, fadeInUp 0.4s ease-out;
     }
     
-    /* Buttons */
+    /* Buttons with Animated Gradient */
     .stButton>button {
-        background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+        background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #38bdf8 100%) !important;
+        background-size: 200% 200% !important;
+        animation: gradientShift 4s ease infinite !important;
         color: white !important;
         font-weight: 700 !important;
         font-size: 0.95rem !important;
         border: none !important;
         border-radius: 12px !important;
-        padding: 12px 24px !important;
-        box-shadow: 0 4px 18px rgba(37, 99, 235, 0.4) !important;
-        transition: all 0.25s ease !important;
+        padding: 12px 26px !important;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4) !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     .stButton>button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 24px rgba(37, 99, 235, 0.6) !important;
+        transform: translateY(-3px) scale(1.02) !important;
+        box-shadow: 0 8px 30px rgba(37, 99, 235, 0.65), 0 0 16px rgba(56, 189, 248, 0.4) !important;
+    }
+    .stButton>button:active {
+        transform: translateY(1px) scale(0.98) !important;
     }
     
     /* Custom badge tags */
@@ -178,6 +255,10 @@ st.markdown("""
         font-size: 0.75rem;
         font-weight: 600;
         letter-spacing: 0.03em;
+        transition: all 0.2s ease;
+    }
+    .badge-pill:hover {
+        transform: scale(1.04);
     }
     .badge-blue {
         background: rgba(14, 165, 233, 0.15);
@@ -198,6 +279,17 @@ st.markdown("""
         background: rgba(239, 68, 68, 0.15);
         color: #f87171;
         border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    
+    /* Live Status Dot */
+    .live-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #38bdf8;
+        animation: pulseDot 2s infinite;
+        margin-right: 6px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -474,239 +566,6 @@ if selected_page == "Home / Dashboard":
             st.plotly_chart(fig_edu, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # ----------------------------------------------------------------------
-        # Institutional ML Underwriting Engine Benchmark & Visualizations
-        # ----------------------------------------------------------------------
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        <div style="margin-bottom: 18px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <span class="badge-pill badge-blue">🤖 ML Engine Benchmark</span>
-                <span style="color: #64748b; font-size: 0.82rem;">Supervised Machine Learning Underwriting Performance Matrix</span>
-            </div>
-            <h2 style="color: #ffffff; font-size: 1.65rem; font-weight: 800; margin: 0; letter-spacing: -0.02em;">ML Models Benchmark & Performance Visualizations</h2>
-            <p style="color: #94a3b8; font-size: 0.88rem; margin-top: 4px;">Comparative analysis of 10 trained classification algorithms, soft-voting ensemble confusion matrix, and predictive feature importances calibrated on realistic Indian borrower incomes.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        metrics_df = load_cached_metrics()
-        reports_dict = load_cached_reports()
-        feat_imp_df = load_cached_feature_importances()
-        roc_dict = load_cached_roc_data()
-
-        if metrics_df is not None and not metrics_df.empty:
-            # Benchmark Summary Cards
-            best_acc_row = metrics_df.sort_values(by="Accuracy", ascending=False).iloc[0]
-            ens_row = metrics_df[metrics_df["Model"].str.contains("Voting Ensemble", na=False)]
-            ens_acc = ens_row["Accuracy"].values[0] if not ens_row.empty else 0.9077
-            ens_f1 = ens_row["F1_Score"].values[0] if not ens_row.empty else 0.9459
-            ens_auc = ens_row["ROC_AUC"].values[0] if not ens_row.empty else 0.9151
-
-            bm1, bm2, bm3, bm4 = st.columns(4)
-            with bm1:
-                st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-title">🏆 Top Classifier Accuracy</div>
-                    <div class="metric-val" style="color: #38bdf8;">{best_acc_row['Accuracy']*100:.2f}%</div>
-                    <div class="metric-sub">{best_acc_row['Model']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with bm2:
-                st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-title">⚡ Production Ensemble Accuracy</div>
-                    <div class="metric-val" style="color: #10b981;">{ens_acc*100:.2f}%</div>
-                    <div class="metric-sub">Voting (RF + ET + KNN)</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with bm3:
-                st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-title">🎯 Production Ensemble F1</div>
-                    <div class="metric-val" style="color: #a855f7;">{ens_f1*100:.2f}%</div>
-                    <div class="metric-sub">Harmonic Precision-Recall</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with bm4:
-                st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-title">📈 Ensemble ROC-AUC</div>
-                    <div class="metric-val" style="color: #f59e0b;">{ens_auc:.4f}</div>
-                    <div class="metric-sub">Held-Out Test Discrimination</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            tab_comp, tab_cm, tab_feat, tab_roc = st.tabs([
-                "📊 Model Performance Comparison",
-                "🎯 Ensemble Confusion Matrix",
-                "🏆 Predictive Feature Importances",
-                "📈 ROC Discrimination Curves"
-            ])
-
-            with tab_comp:
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                sorted_metrics = metrics_df.sort_values(by="Accuracy", ascending=True).copy()
-                
-                fig_comp = go.Figure()
-                fig_comp.add_trace(go.Bar(
-                    y=sorted_metrics["Model"],
-                    x=sorted_metrics["Accuracy"] * 100,
-                    name="Accuracy (%)",
-                    orientation="h",
-                    marker=dict(color="#0284c7", line=dict(color="#38bdf8", width=1.5)),
-                    text=[f"{v*100:.2f}%" for v in sorted_metrics["Accuracy"]],
-                    textposition="inside",
-                    insidetextanchor="middle"
-                ))
-                fig_comp.add_trace(go.Bar(
-                    y=sorted_metrics["Model"],
-                    x=sorted_metrics["F1_Score"] * 100,
-                    name="F1 Score (%)",
-                    orientation="h",
-                    marker=dict(color="#059669", line=dict(color="#10b981", width=1.5)),
-                    text=[f"{v*100:.2f}%" for v in sorted_metrics["F1_Score"]],
-                    textposition="inside",
-                    insidetextanchor="middle"
-                ))
-                fig_comp.update_layout(
-                    title="<b>Comparative Performance Benchmark Across All 10 Trained Models</b>",
-                    barmode="group",
-                    xaxis=dict(title="Score (%)", range=[75, 100], gridcolor="rgba(255,255,255,0.08)"),
-                    yaxis=dict(title=""),
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                    height=450,
-                    margin=dict(t=60, b=20, l=150, r=20),
-                    template="plotly_dark"
-                )
-                st.plotly_chart(fig_comp, use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            with tab_cm:
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                cm_data = get_confusion_matrix_details("Voting Ensemble (RF+ET+KNN)", BASE_DIR)
-                if cm_data:
-                    c_cm_plot, c_cm_info = st.columns([1.2, 1])
-                    with c_cm_plot:
-                        z_vals = cm_data["matrix"]
-                        annotations = [
-                            [f"<b>TN: {z_vals[0][0]}</b><br>(Correctly Declined)", f"<b>FP: {z_vals[0][1]}</b><br>(Defaulter Approved)"],
-                            [f"<b>FN: {z_vals[1][0]}</b><br>(Creditworthy Declined)", f"<b>TP: {z_vals[1][1]}</b><br>(Correctly Approved)"]
-                        ]
-                        fig_cm = go.Figure(data=go.Heatmap(
-                            z=z_vals,
-                            x=["Predicted Declined (N)", "Predicted Approved (Y)"],
-                            y=["Actual Declined (N)", "Actual Approved (Y)"],
-                            colorscale=[[0, "#082f49"], [0.5, "#0284c7"], [1, "#10b981"]],
-                            showscale=False
-                        ))
-                        for i in range(2):
-                            for j in range(2):
-                                fig_cm.add_annotation(
-                                    x=j, y=i,
-                                    text=annotations[i][j],
-                                    showarrow=False,
-                                    font=dict(color="#ffffff", size=13)
-                                )
-                        fig_cm.update_layout(
-                            title="<b>Voting Ensemble Confusion Matrix (Held-out Test Split, N=1,040)</b>",
-                            paper_bgcolor="rgba(0,0,0,0)",
-                            plot_bgcolor="rgba(0,0,0,0)",
-                            height=380,
-                            margin=dict(t=50, b=20, l=20, r=20),
-                            template="plotly_dark"
-                        )
-                        st.plotly_chart(fig_cm, use_container_width=True)
-
-                    with c_cm_info:
-                        st.markdown("<h4 style='color:#f8fafc; margin-top:10px;'>Risk & Clearances Diagnostic</h4>", unsafe_allow_html=True)
-                        st.markdown(f"""
-                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
-                            <div style="color: #94a3b8; font-size: 0.8rem; font-weight:600;">PORTFOLIO SPECIFICITY (CLEAN DECLINE RATE)</div>
-                            <div style="color: #38bdf8; font-size: 1.4rem; font-weight: 800;">{cm_data['specificity']*100:.1f}%</div>
-                            <div style="color: #64748b; font-size: 0.75rem;">105 of 118 non-qualifying profiles accurately declined.</div>
-                        </div>
-                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
-                            <div style="color: #94a3b8; font-size: 0.8rem; font-weight:600;">PORTFOLIO SENSITIVITY (APPROVAL RECALL)</div>
-                            <div style="color: #10b981; font-size: 1.4rem; font-weight: 800;">{cm_data['sensitivity']*100:.1f}%</div>
-                            <div style="color: #64748b; font-size: 0.75rem;">839 of 922 creditworthy borrowers sanctioned without friction.</div>
-                        </div>
-                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 14px;">
-                            <div style="color: #94a3b8; font-size: 0.8rem; font-weight:600;">FALSE SANCTION RATE (DEFAULTER LEAKAGE)</div>
-                            <div style="color: #ef4444; font-size: 1.4rem; font-weight: 800;">{cm_data['false_sanction_rate']*100:.2f}%</div>
-                            <div style="color: #64748b; font-size: 0.75rem;">Only 13 of 852 sanctioned loans were high-risk profiles.</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            with tab_feat:
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                if feat_imp_df is not None and not feat_imp_df.empty:
-                    top_feats = feat_imp_df.head(10).sort_values("Importance", ascending=True)
-                    fig_feat = px.bar(
-                        top_feats,
-                        x="Importance",
-                        y="Feature",
-                        orientation="h",
-                        title="<b>Predictive Feature Importances (Random Forest Gini Impurity)</b>",
-                        labels={"Importance": "Gini Importance Weight", "Feature": "Engineered Underwriting Feature"},
-                        color="Importance",
-                        color_continuous_scale="Viridis",
-                        template="plotly_dark"
-                    )
-                    fig_feat.update_layout(
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        height=420,
-                        margin=dict(t=50, b=20, l=150, r=20)
-                    )
-                    st.plotly_chart(fig_feat, use_container_width=True)
-                    st.caption("ℹ️ *Credit History is by far the highest-weight predictive feature (68.1%), followed by applicant & co-applicant income, total debt burden, and loan-to-income ratio.*")
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            with tab_roc:
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                if roc_dict:
-                    fig_roc = go.Figure()
-                    fig_roc.add_trace(go.Scatter(
-                        x=[0, 1], y=[0, 1],
-                        mode="lines",
-                        line=dict(dash="dash", color="#64748b", width=2),
-                        name="Chance Baseline (AUC = 0.50)"
-                    ))
-                    if "Voting Ensemble" in roc_dict:
-                        ens_roc = roc_dict["Voting Ensemble"]
-                        fig_roc.add_trace(go.Scatter(
-                            x=ens_roc["fpr"], y=ens_roc["tpr"],
-                            mode="lines",
-                            line=dict(color="#10b981", width=3),
-                            name=f"Voting Ensemble (AUC = {ens_roc['auc']:.4f})"
-                        ))
-                    if "Random Forest" in roc_dict:
-                        rf_roc = roc_dict["Random Forest"]
-                        fig_roc.add_trace(go.Scatter(
-                            x=rf_roc["fpr"], y=rf_roc["tpr"],
-                            mode="lines",
-                            line=dict(color="#38bdf8", width=2.5, dash="dot"),
-                            name=f"Random Forest (AUC = {rf_roc['auc']:.4f})"
-                        ))
-                    fig_roc.update_layout(
-                        title="<b>Receiver Operating Characteristic (ROC) Discrimination Curves</b>",
-                        xaxis=dict(title="False Positive Rate (1 - Specificity)", gridcolor="rgba(255,255,255,0.08)"),
-                        yaxis=dict(title="True Positive Rate (Sensitivity / Recall)", gridcolor="rgba(255,255,255,0.08)"),
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        legend=dict(x=0.6, y=0.1, bgcolor="rgba(15,23,42,0.8)", bordercolor="rgba(255,255,255,0.1)"),
-                        height=420,
-                        margin=dict(t=50, b=20, l=40, r=20),
-                        template="plotly_dark"
-                    )
-                    st.plotly_chart(fig_roc, use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-
 # ------------------------------------------------------------------------------------------
 # PAGE 2: ML MODELS & ANALYTICS
 # ------------------------------------------------------------------------------------------
@@ -718,7 +577,7 @@ elif selected_page == "ML Models & Analytics":
             <span style="color: #64748b; font-size: 0.82rem;">Comprehensive Algorithm Benchmarks, Confusion Matrices & Explainability</span>
         </div>
         <h2 style="color: #ffffff; font-size: 1.85rem; font-weight: 800; margin: 0; letter-spacing: -0.02em;">ML Models & Performance Analytics</h2>
-        <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 4px;">Explore comparative benchmark evaluations, interactive confusion matrices for all 10 algorithms, feature importances, ROC curves, and cross-validation stability.</p>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 4px;">Explore comparative benchmark evaluations, interactive confusion matrices for all 10 algorithms, predictive feature importances, ROC curves, and financial dataset correlations.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -784,12 +643,11 @@ elif selected_page == "ML Models & Analytics":
         st.markdown("<br>", unsafe_allow_html=True)
 
         # Tabbed Layout for Deep ML Analytics
-        tab_bmark, tab_conf, tab_driver, tab_curves, tab_stability, tab_corr = st.tabs([
+        tab_bmark, tab_conf, tab_driver, tab_curves, tab_corr = st.tabs([
             "📊 Comparative Benchmarks",
             "🎯 Interactive Confusion Matrix",
             "🏆 Feature Importances",
             "📈 ROC Discrimination Curves",
-            "🔬 Cross-Validation Stability",
             "🔥 Dataset Correlations"
         ])
 
@@ -819,6 +677,7 @@ elif selected_page == "ML Models & Analytics":
                     template="plotly_dark"
                 )
                 fig_single_bar.update_layout(
+                    transition=dict(duration=500, easing="cubic-in-out"),
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
                     xaxis=dict(range=[0.75, 1.0]),
@@ -842,6 +701,7 @@ elif selected_page == "ML Models & Analytics":
                 )
                 fig_latency.update_traces(textposition="top center")
                 fig_latency.update_layout(
+                    transition=dict(duration=500, easing="cubic-in-out"),
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
                     showlegend=False,
@@ -898,6 +758,7 @@ elif selected_page == "ML Models & Analytics":
                                 font=dict(color="#ffffff", size=13)
                             )
                     fig_cm_interactive.update_layout(
+                        transition=dict(duration=500, easing="cubic-in-out"),
                         title=f"<b>Confusion Matrix: {selected_model_cm}</b>",
                         paper_bgcolor="rgba(0,0,0,0)",
                         plot_bgcolor="rgba(0,0,0,0)",
@@ -1032,54 +893,7 @@ elif selected_page == "ML Models & Analytics":
                 st.caption("ℹ️ *An ROC-AUC score of 0.9151 demonstrates exceptional discriminative ability in separating creditworthy applicants from potential default risks on the held-out test split.*")
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # TAB 5: Cross-Validation Stability
-        with tab_stability:
-            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-            if cv_df is not None and not cv_df.empty:
-                col_cv1, col_cv2 = st.columns([1, 1])
-                with col_cv1:
-                    fig_cv_acc = px.box(
-                        cv_df,
-                        x="CV_Accuracy",
-                        y="Model",
-                        points="all",
-                        title="<b>5-Fold Stratified Cross-Validation Accuracy Spread</b>",
-                        labels={"CV_Accuracy": "Cross-Validation Accuracy", "Model": "Algorithm"},
-                        color="Model",
-                        template="plotly_dark"
-                    )
-                    fig_cv_acc.update_layout(
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        showlegend=False,
-                        height=420,
-                        margin=dict(t=50, b=20, l=140, r=20)
-                    )
-                    st.plotly_chart(fig_cv_acc, use_container_width=True)
-
-                with col_cv2:
-                    fig_cv_f1 = px.box(
-                        cv_df,
-                        x="CV_F1",
-                        y="Model",
-                        points="all",
-                        title="<b>5-Fold Stratified Cross-Validation F1-Score Spread</b>",
-                        labels={"CV_F1": "Cross-Validation F1 Score", "Model": "Algorithm"},
-                        color="Model",
-                        template="plotly_dark"
-                    )
-                    fig_cv_f1.update_layout(
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        showlegend=False,
-                        height=420,
-                        margin=dict(t=50, b=20, l=140, r=20)
-                    )
-                    st.plotly_chart(fig_cv_f1, use_container_width=True)
-                st.caption("ℹ️ *Narrow variance across all 5 folds confirms that the models generalize robustly without overfitting to any specific partition of the data.*")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # TAB 6: Dataset Correlations
+        # TAB 5: Dataset Correlations
         with tab_corr:
             st.markdown('<div class="glass-card">', unsafe_allow_html=True)
             if df_raw is not None:
@@ -1325,15 +1139,19 @@ elif selected_page == "Loan Approval Prediction":
                 st.error("⚠️ Trained model artifact not found. Please train models first via `python -m src.models`.")
             else:
                 try:
-                    res = predictor.predict(
-                        input_payload,
-                        annual_interest_rate=effective_rate if custom_rate_toggle else None,
-                        existing_monthly_debt=existing_debt,
-                        loan_product=loan_cat
-                    )
+                    with st.spinner("⚡ Calibrating underwriting factors & executing soft-voting ensemble..."):
+                        time.sleep(0.35)
+                        res = predictor.predict(
+                            input_payload,
+                            annual_interest_rate=effective_rate if custom_rate_toggle else None,
+                            existing_monthly_debt=existing_debt,
+                            loan_product=loan_cat
+                        )
                     st.session_state["assessment_result"] = res
                     st.session_state["assessment_signature"] = current_input_signature
                     st.session_state["assessment_payload"] = input_payload
+                    if res["is_approved"]:
+                        st.balloons()
                 except Exception as e:
                     st.error(f"Inference error encountered: {str(e)}")
                     st.session_state["assessment_result"] = None
@@ -1425,7 +1243,12 @@ elif selected_page == "Loan Approval Prediction":
                     }
                 }
             ))
-            fig_gauge.update_layout(paper_bgcolor="rgba(0,0,0,0)", height=190, margin=dict(t=25, b=10, l=20, r=20))
+            fig_gauge.update_layout(
+                transition=dict(duration=600, easing="cubic-in-out"),
+                paper_bgcolor="rgba(0,0,0,0)",
+                height=190,
+                margin=dict(t=25, b=10, l=20, r=20)
+            )
             st.plotly_chart(fig_gauge, use_container_width=True)
             
             # Repayment Breakdown Pie / Donut Chart (Loan Amount vs Interest vs Total to be Paid)
@@ -1439,12 +1262,14 @@ elif selected_page == "Loan Approval Prediction":
                     labels=["Loan Amount (Principal)", "Total Interest Amount"],
                     values=[p_val, i_val],
                     hole=0.55,
+                    pull=[0.03, 0.03],
                     marker=dict(colors=["#0284c7", "#f59e0b"]),
                     textinfo="label+percent",
                     hoverinfo="label+value+percent",
                     hovertemplate="<b>%{label}</b><br>Amount: ₹%{value:,.2f}<br>Share: %{percent}<extra></extra>"
                 )])
                 fig_repay_pie.update_layout(
+                    transition=dict(duration=500, easing="cubic-in-out"),
                     annotations=[{
                         "text": f"<b>Total to Pay</b><br><span style='font-size:12px; color:#38bdf8;'>{format_inr(tot_val)}</span>",
                         "showarrow": False,
