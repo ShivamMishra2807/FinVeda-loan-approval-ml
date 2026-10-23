@@ -1,6 +1,7 @@
 """
 Evaluation Metrics and Visualizations Helper Module.
 Generates evaluation figures, ROC curves, confusion matrices, and feature importances.
+Provides helper functions for Streamlit interactive visualizations.
 """
 
 import os
@@ -15,9 +16,148 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_c
 from src.preprocessing import get_feature_names
 
 
+def get_project_root() -> str:
+    """Returns absolute path to the project root directory."""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.abspath(os.path.join(current_dir, ".."))
+
+
+def load_model_metrics(project_root: str = None) -> pd.DataFrame:
+    """Loads model performance metrics DataFrame from reports/model_metrics.csv."""
+    root = project_root or get_project_root()
+    metrics_file = os.path.join(root, "reports", "model_metrics.csv")
+    if os.path.exists(metrics_file):
+        return pd.read_csv(metrics_file)
+    return pd.DataFrame()
+
+
+def load_classification_reports(project_root: str = None) -> dict:
+    """Loads full classification report dictionary including confusion matrices and CV scores."""
+    root = project_root or get_project_root()
+    reports_file = os.path.join(root, "reports", "classification_reports.json")
+    if os.path.exists(reports_file):
+        with open(reports_file, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def get_feature_importances(project_root: str = None) -> pd.DataFrame:
+    """Extracts feature importances from the trained Random Forest model pipeline."""
+    root = project_root or get_project_root()
+    rf_file = os.path.join(root, "models", "random_forest_pipeline.joblib")
+    if not os.path.exists(rf_file):
+        return pd.DataFrame(columns=["Feature", "Importance"])
+    
+    rf_pipeline = joblib.load(rf_file)
+    preprocessor = rf_pipeline.named_steps["preprocessor"]
+    feature_names = get_feature_names(preprocessor)
+    rf_clf = rf_pipeline.named_steps["classifier"]
+    importances = rf_clf.feature_importances_
+    
+    feat_df = pd.DataFrame({"Feature": feature_names, "Importance": importances})
+    return feat_df.sort_values(by="Importance", ascending=False).reset_index(drop=True)
+
+
+def get_roc_data(project_root: str = None) -> dict:
+    """
+    Computes ROC curves and AUC scores on the held-out test split
+    for both Voting Ensemble and Random Forest.
+    """
+    root = project_root or get_project_root()
+    splits_file = os.path.join(root, "models", "test_splits.joblib")
+    ens_file = os.path.join(root, "models", "voting_ensemble_pipeline.joblib")
+    rf_file = os.path.join(root, "models", "random_forest_pipeline.joblib")
+    
+    results = {}
+    if not os.path.exists(splits_file):
+        return results
+        
+    splits = joblib.load(splits_file)
+    X_test, y_test = splits["X_test"], splits["y_test"]
+    
+    if os.path.exists(ens_file):
+        ens = joblib.load(ens_file)
+        y_proba_ens = ens.predict_proba(X_test)[:, 1]
+        fpr_ens, tpr_ens, _ = roc_curve(y_test, y_proba_ens)
+        results["Voting Ensemble"] = {
+            "fpr": fpr_ens.tolist(),
+            "tpr": tpr_ens.tolist(),
+            "auc": float(auc(fpr_ens, tpr_ens))
+        }
+        
+    if os.path.exists(rf_file):
+        rf = joblib.load(rf_file)
+        y_proba_rf = rf.predict_proba(X_test)[:, 1]
+        fpr_rf, tpr_rf, _ = roc_curve(y_test, y_proba_rf)
+        results["Random Forest"] = {
+            "fpr": fpr_rf.tolist(),
+            "tpr": tpr_rf.tolist(),
+            "auc": float(auc(fpr_rf, tpr_rf))
+        }
+        
+    return results
+
+
+def get_confusion_matrix_details(model_name: str = "Voting Ensemble (RF+ET+KNN)", project_root: str = None) -> dict:
+    """
+    Extracts and calculates TN, FP, FN, TP, Specificity, Sensitivity, and Precision
+    for any specified model from the classification report.
+    """
+    reports = load_classification_reports(project_root)
+    if model_name not in reports:
+        return {}
+        
+    data = reports[model_name]
+    cm = data.get("confusion_matrix", [[0, 0], [0, 0]])
+    tn, fp = cm[0][0], cm[0][1]
+    fn, tp = cm[1][0], cm[1][1]
+    
+    total = tn + fp + fn + tp
+    accuracy = (tp + tn) / total if total > 0 else 0
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    f1 = 2 * (precision * sensitivity) / (precision + sensitivity) if (precision + sensitivity) > 0 else 0
+    false_sanction_rate = fp / (tp + fp) if (tp + fp) > 0 else 0  # Bad loans approved
+    
+    return {
+        "model_name": model_name,
+        "matrix": cm,
+        "tn": tn,
+        "fp": fp,
+        "fn": fn,
+        "tp": tp,
+        "total": total,
+        "accuracy": accuracy,
+        "sensitivity": sensitivity,
+        "specificity": specificity,
+        "precision": precision,
+        "f1": f1,
+        "false_sanction_rate": false_sanction_rate,
+        "report": data.get("report", {})
+    }
+
+
+def get_cv_scores_df(project_root: str = None) -> pd.DataFrame:
+    """Extracts 5-fold cross-validation scores for all models into a tidy DataFrame."""
+    reports = load_classification_reports(project_root)
+    records = []
+    for model_name, data in reports.items():
+        if "cv_scores" in data and "test_accuracy" in data["cv_scores"]:
+            for fold_idx, acc in enumerate(data["cv_scores"]["test_accuracy"]):
+                f1 = data["cv_scores"]["test_f1"][fold_idx]
+                records.append({
+                    "Model": model_name,
+                    "Fold": f1_fold if (f1_fold := f"Fold {fold_idx + 1}") else fold_idx + 1,
+                    "CV_Accuracy": acc,
+                    "CV_F1": f1
+                })
+    return pd.DataFrame(records)
+
+
 def generate_evaluation_artifacts(output_dir: str):
     """
-    Reads saved models and test splits to generate charts in visualizations/
+    Reads saved models and test splits to generate static charts in visualizations/
     """
     vis_dir = os.path.join(output_dir, "visualizations")
     os.makedirs(vis_dir, exist_ok=True)
@@ -92,6 +232,5 @@ def generate_evaluation_artifacts(output_dir: str):
 
 
 if __name__ == "__main__":
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(os.path.join(current_dir, ".."))
+    project_root = get_project_root()
     generate_evaluation_artifacts(project_root)
