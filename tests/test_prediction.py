@@ -25,9 +25,9 @@ def test_positive_loan_prediction():
         "Dependents": "1",
         "Education": "Graduate",
         "Self_Employed": "No",
-        "ApplicantIncome": 8500,
-        "CoapplicantIncome": 3500,
-        "LoanAmount": 120,
+        "ApplicantIncome": 65000,
+        "CoapplicantIncome": 25000,
+        "LoanAmount": 350,
         "Loan_Amount_Term": 360,
         "Credit_History": 1.0,
         "Property_Area": "Semiurban"
@@ -41,16 +41,16 @@ def test_positive_loan_prediction():
 
 def test_negative_loan_prediction():
     service = LoanPredictionService(MODEL_PATH)
-    # Poor credit history and excessive debt burden
+    # Poor credit history and excessive debt burden under realistic income scale
     applicant = {
         "Gender": "Male",
         "Married": "No",
         "Dependents": "3+",
         "Education": "Not Graduate",
         "Self_Employed": "Yes",
-        "ApplicantIncome": 1800,
+        "ApplicantIncome": 22000,
         "CoapplicantIncome": 0,
-        "LoanAmount": 380,
+        "LoanAmount": 650,
         "Loan_Amount_Term": 180,
         "Credit_History": 0.0,
         "Property_Area": "Rural"
